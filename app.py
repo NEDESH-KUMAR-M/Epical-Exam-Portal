@@ -232,4 +232,4 @@ def log_violation():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True,port = 5001)  # Change port if needed
+    app.run(debug=True,port = 5000)  # Change port if needed
