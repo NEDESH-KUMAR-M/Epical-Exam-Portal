@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>General Instructions</title>
+  <link rel="icon" href="logo.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary-color: #2c6e49;
+      --primary-dark: #1e4d36;
+      --secondary-color: #4c956c;
+      --light-bg: #f6fef7;
+      --accent-color: #ff9b54;
+      --text-color: #333;
+      --light-text: #666;
+      --border-radius: 8px;
+      --box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    * {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      height: 100vh;
+      background: linear-gradient(135deg, #f6fef7 0%, #d5f6e1 50%, #c4f0d9 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.4;
+      overflow: hidden;
+      padding: 10px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    header img {
+      height: 40px;
+      width: auto;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 800px;
+      height: calc(100vh - 80px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .exam-card {
+      width: 100%;
+      height: 100%;
+      max-height: 90vh;
+      margin: 0;
+      padding: 20px;
+      box-shadow: var(--box-shadow);
+      background-color: white;
+      border-radius: var(--border-radius);
+      border-top: 4px solid var(--primary-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .exam-header {
+      text-align: center;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .exam-header h2 {
+      font-size: 1.4rem;
+      color: var(--primary-dark);
+      margin-bottom: 5px;
+    }
+
+    .exam-meta {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      font-size: 0.85rem;
+      color: var(--light-text);
+    }
+
+    .instructions-container {
+      flex: 1;
+      overflow-y: auto;
+      margin: 10px 0;
+      padding: 5px;
+    }
+
+    .instruction-list {
+      background-color: rgba(10, 173, 10, 0.1);
+      padding: 15px;
+      padding-left: 25px;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+      border-radius: 15px;
+    }
+
+    .instruction-list li {
+      margin-bottom: 10px;
+      padding-left: 5px;
+    }
+
+    .instruction-list strong {
+      color: var(--primary-dark);
+    }
+
+    .important-note {
+      background-color: #fff8e6;
+      padding: 10px 15px;
+      border-left: 3px solid var(--accent-color);
+      border-radius: 0 var(--border-radius) var(--border-radius) 0;
+      margin: 15px 0;
+      font-size: 0.85rem;
+    }
+
+    .important-note h3 {
+      color: var(--accent-color);
+      margin-bottom: 5px;
+      font-size: 1rem;
+    }
+
+    .acknowledgement {
+      margin: 15px 0;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      margin-top: 2px;
+      accent-color: var(--primary-color);
+    }
+
+    .exam-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    .wish-message {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .primary-button {
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 120px;
+    }
+
+    .primary-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .primary-button:hover:enabled {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 5px;
+      }
+      
+      .exam-card {
+        padding: 15px;
+      }
+      
+      header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .exam-header h2 {
+        font-size: 1.2rem;
+      }
+      
+      .instruction-list {
+        padding: 10px 15px;
+        font-size: 0.8rem;
+      }
+      
+      .primary-button {
+        padding: 6px 15px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="{{ url_for('static', filename='image/logo.png') }}" alt="Company Logo"  width="40" height="40" alt="Epical Layouts Logo" />
+    <h1>Epical Layouts</h1>
+  </header>
+  <main class="main-container">
+    <div class="exam-card">
+      
+      <div class="exam-header">
+        <h2>Exam Instructions</h2>
+        <div class="exam-meta">
+          <span class="meta-item"><strong>Duration:</strong> 3:00 hours</span>
+          <span class="meta-item"><strong>Questions:</strong> 10</span>
+        </div>
+      </div>
+      <center><div class="candidate-name">Candidate: <strong>{{ fullname }}</strong></div></center>
+      
+        
+
+    <!-- Page Title -->
+  
+    <!-- Instructions -->
+    <div class="instructions-container">
+        <ol class="instruction-list">
+          <li>
+            <strong>Read all instructions carefully</strong> before beginning the exam.
+          </li>
+          <li>
+            <strong>Time management:</strong> The exam must be completed within the 3-hour time limit.
+          </li>
+          <li>
+            <strong>No external resources:</strong> The use of dictionaries, calculators, or any online/offline references is strictly prohibited.
+          </li>
+          <li>
+            <strong>Technical requirements:</strong> Ensure you have a stable internet connection before starting.
+          </li>
+          <li>
+            <strong>Navigation warning:</strong> Do not close, refresh, or navigate away from the exam page once started.
+          </li>
+          <li>
+            <strong>Grading policy:</strong> There will be negative marking - 7% of the question's value will be deducted for each incorrect answer.
+          </li>
+        </ol>
+
+      <!-- Color Legend -->
+      <div class="important-note">
+          <h3>Important Note</h3>
+          <p>Any attempt to circumvent these rules may result in disqualification from the exam.</p>
+        </div>
+      </div>
+
+      <div class="acknowledgement">
+        <div class="checkbox-container">
+          <input type="checkbox" id="agreeCheckbox" required />
+          <label for="agreeCheckbox">I have read and understood all the instructions above and agree to comply with them.</label>
+        </div>
+      </div>
+
+      <div class="exam-footer">
+        <p class="wish-message">✨ Best of luck with your exam! ✨</p><div id="countdown" class="countdown"></div>
+        <button id="startExamBtn" class="primary-button btn btn-success start-btn" disabled>Begin Exam</button>
+      </div>
+    </div>
+  </main>
+    <!-- Checkbox and Start Button -->
+
+
+
+    <!-- Countdown and Good Luck Message -->
+    <div id="countdown" class="countdown"></div>
+    <div id="goodLuckMsg" class="good-luck" style="display: none;"> </div>
+  </div>
+
+  <script>
+    const checkbox = document.getElementById('agreeCheckbox');
+    const button = document.getElementById('startExamBtn');
+    const countdown = document.getElementById('countdown');
+    const goodLuck = document.getElementById('goodLuckMsg');
+
+    checkbox.addEventListener('change', () => {
+      button.disabled = !checkbox.checked;
+    });
+
+    button.addEventListener('click', () => {
+      button.disabled = true;
+      checkbox.disabled = true;
+      let seconds = 10;
+
+      countdown.textContent = `⏳ Starting in ${seconds} seconds...`;
+      goodLuck.style.display = 'block';
+
+      const timer = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+          countdown.textContent = `⏳ Starting in ${seconds} seconds...`;
+        } else {
+          clearInterval(timer);
+          countdown.textContent = "Redirecting to exam...";
+          setTimeout(() => {
+            window.location.href = "{{ url_for('exam') }}";
+          }, 1000);
+        }
+      }, 1000);
+    });
+  </script>
+
+</body>
+</html>
