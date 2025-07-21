@@ -72,7 +72,7 @@ def admin_dashboard():
 
 
 @app.route('/instructions')
-
+@login_required
 def instructions():
     try:
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
