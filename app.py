@@ -40,6 +40,9 @@ def login():
         for user in users:
             sheet_email = str(user.get('EmployeeMailId', '')).strip().lower()
             sheet_password = str(user.get('Password', '')).strip()
+            print("Entered:", email, "/", password)
+            print("Sheet:", sheet_email, "/", sheet_password)
+
 
             if email.lower() == sheet_email:
                 if password == sheet_password:
@@ -66,9 +69,35 @@ def admin_dashboard():
 
 
 @app.route('/instructions')
-@login_required
+
 def instructions():
-    return render_template('instructions.html', fullname=session.get('fullname'))
+    try:
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+
+        # Fetch instructions
+        instructions_sheet = spreadsheet.worksheet("Instructions")
+        instructions = instructions_sheet.col_values(1)
+
+        # Fetch metadata
+        meta_sheet = spreadsheet.worksheet("TIME")
+        meta_records = meta_sheet.get_all_records()
+        meta = meta_records[0] if meta_records else {}
+
+        duration = meta.get('Duration', 'N/A')
+        total_questions = meta.get('TotalQuestions', 'N/A')
+
+    except Exception as e:
+        instructions = ["❌ Failed to load instructions: " + str(e)]
+        duration = "N/A"
+        total_questions = "N/A"
+
+    return render_template('instructions.html',
+                           fullname=session.get('fullname'),
+                           instructions=instructions,
+                           duration=duration,
+                           total_questions=total_questions)
+
+
 
 
 @app.route('/exam')
