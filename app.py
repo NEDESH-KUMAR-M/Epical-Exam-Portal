@@ -60,19 +60,17 @@ def login():
 
 
 @app.route('/admin_dashboard')
-@login_required
+
 def admin_dashboard():
     return "<h2>📊 Admin Dashboard</h2>"
 
 
 @app.route('/instructions')
-@login_required
 def instructions():
     return render_template('instructions.html', fullname=session.get('fullname'))
 
 
 @app.route('/exam')
-@login_required
 def exam():
     return render_template('exam.html', fullname=session.get('fullname'))
 
@@ -80,7 +78,7 @@ def exam():
 
 
 @app.route('/get_questions/<test_id>')
-@login_required
+
 def get_questions(test_id):
     try:
         # For TEST01 use Questions_TEST01
@@ -98,7 +96,7 @@ def get_questions(test_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/submit_exam', methods=['POST'])
-@login_required
+
 def submit_exam():
     try:
         data = request.get_json()
@@ -189,7 +187,6 @@ def submit_answer():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 @app.route('/log_violation', methods=['POST'])
-@login_required
 def log_violation():
     try:
         data = request.get_json()

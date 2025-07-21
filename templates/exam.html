@@ -375,6 +375,7 @@
             <!-- Question Panel -->
             <div class="question-panel">
                 <div class="question-header" id="questionHeader">Q1</div>
+                <div id="questionImageContainer" style="margin: 15px 0; text-align: center;"></div>
                 <div class="question-text" id="questionText">
                     Loading question...
                 </div>
@@ -546,6 +547,7 @@
                     options: [q.OptionA, q.OptionB, q.OptionC, q.OptionD].filter(opt => opt),
                     answer: q.Answer,
                     type: q.Type.toLowerCase(),
+                    image: q.ImageURL || null,
                     selectedAnswer: null,
                     isMarkedForReview: false,
                     isAttempted: false
@@ -580,8 +582,22 @@
             questionHeader.textContent = `Q${currentQuestion + 1}`;
             questionText.textContent = q.question;
             
-            optionsContainer.innerHTML = '';
+            // Handle question image
+            const imageContainer = document.getElementById('questionImageContainer');
+            imageContainer.innerHTML = ''; // Clear previous image
             
+            if (q.image) {
+                const img = document.createElement('img');
+                img.src = q.image;
+                img.alt = 'Question Image';
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '300px';
+                img.style.borderRadius = '8px';
+                img.style.margin = '10px 0';
+                imageContainer.appendChild(img);
+            }
+            
+            optionsContainer.innerHTML = '';
             q.options.forEach((option, index) => {
                 const optionDiv = document.createElement('div');
                 optionDiv.className = `option ${q.selectedAnswer === index ? 'selected' : ''}`;
