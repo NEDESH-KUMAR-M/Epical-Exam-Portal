@@ -57,17 +57,27 @@
         }
 
         .main-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    /* Add min-height to ensure content doesn't get too small */
+    min-height: 500px;
+    /* Add align-items stretch to make both columns same height */
+    align-items: stretch;
+}
 
         .question-panel {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 25px;
-        }
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 25px;
+    /* Make it full height */
+    height: 100%;
+    /* Add flexbox to manage internal layout */
+    display: flex;
+    flex-direction: column;
+}
+
 
         .question-header {
             font-size: 18px;
@@ -84,8 +94,10 @@
         }
 
         .options {
-            margin-bottom: 30px;
-        }
+    margin-bottom: 30px;
+    /* Allow options to grow and take available space */
+    flex-grow: 1;
+}
 
         .option {
             display: flex;
@@ -208,14 +220,32 @@
         }
 
         .navigation-panel {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            height: 500px;
-            overflow-y: scroll;
-        }
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    /* Remove fixed height */
+    /* height: 500px; */
+    /* Make it full height of parent */
+    height: 100%;
+    overflow-y: auto; /* Changed from scroll to auto */
+}
+#questionImageContainer {
+    margin: 15px 0;
+    text-align: center;
+    /* Add max-height and scrolling for very large images */
+    max-height: 300px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
+#questionImageContainer img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+}
         .nav-header {
             background: #e3f2fd;
             color: #1976d2;
