@@ -32,19 +32,21 @@ def login_required(f):
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '').strip()
 
-        users = login_sheet.get_all_records(head=1)
+        # Get data with proper header handling
+        all_data = login_sheet.get_all_values()
+        headers = [h.strip() for h in all_data[0]]  # Clean headers
+        users = []
+        for row in all_data[1:]:
+            users.append(dict(zip(headers, row)))
 
         for user in users:
-            sheet_email = str(user.get('EmployeeMailId', '')).strip().lower()
-            sheet_password = str(user.get('Password', '')).strip()
-            print("Entered:", email, "/", password)
-            print("Sheet:", sheet_email, "/", sheet_password)
-
-
-            if email.lower() == sheet_email:
+            sheet_email = user.get('EmployeeMailId', '').strip().lower()
+            sheet_password = user.get('Password', '').strip()  # Now works with cleaned header
+            
+            if email == sheet_email:
                 if password == sheet_password:
                     session['logged_in'] = True
                     session['email'] = email
@@ -53,13 +55,14 @@ def login():
                     return redirect(url_for('admin_dashboard' if session['role'] == 'admin' else 'instructions'))
                 else:
                     flash('Incorrect password', 'danger')
-                break
+                    break
         else:
             flash('Email not found', 'danger')
 
         return redirect(url_for('login'))
 
     return render_template('login.html')
+
 
 
 @app.route('/admin_dashboard')
