@@ -78,7 +78,6 @@
     flex-direction: column;
 }
 
-
         .question-header {
             font-size: 18px;
             font-weight: bold;
@@ -98,6 +97,7 @@
     /* Allow options to grow and take available space */
     flex-grow: 1;
 }
+
 
         .option {
             display: flex;
@@ -230,22 +230,8 @@
     height: 100%;
     overflow-y: auto; /* Changed from scroll to auto */
 }
-#questionImageContainer {
-    margin: 15px 0;
-    text-align: center;
-    /* Add max-height and scrolling for very large images */
-    max-height: 300px;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
 
-#questionImageContainer img {
-    max-height: 100%;
-    max-width: 100%;
-    object-fit: contain;
-}
+
         .nav-header {
             background: #e3f2fd;
             color: #1976d2;
@@ -921,4 +907,4 @@
         fetchQuestions();
     </script>
 </body>
-</html>
+</html>  
