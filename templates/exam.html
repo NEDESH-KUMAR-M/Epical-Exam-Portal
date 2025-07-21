@@ -587,13 +587,31 @@
             imageContainer.innerHTML = ''; // Clear previous image
             
             if (q.image) {
+                // Extract Google Drive file ID if it's a Google Drive URL
+                let imageUrl = q.image;
+                if (q.image.includes('drive.google.com')) {
+                    const fileId = q.image.match(/[-\w]{25,}/);
+                    if (fileId) {
+                        imageUrl = `https://drive.google.com/thumbnail?id=${fileId[0]}`;
+                    }
+                }
+                
                 const img = document.createElement('img');
-                img.src = q.image;
+                img.src = imageUrl;
                 img.alt = 'Question Image';
                 img.style.maxWidth = '100%';
                 img.style.maxHeight = '300px';
                 img.style.borderRadius = '8px';
                 img.style.margin = '10px 0';
+                img.onerror = function() {
+                    // Fallback if image fails to load
+                    this.style.display = 'none';
+                    const errorMsg = document.createElement('p');
+                    errorMsg.textContent = 'Image not available';
+                    errorMsg.style.color = '#999';
+                    errorMsg.style.fontStyle = 'italic';
+                    imageContainer.appendChild(errorMsg);
+                };
                 imageContainer.appendChild(img);
             }
             
