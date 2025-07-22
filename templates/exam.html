@@ -585,11 +585,11 @@
 
             if (totalSeconds < 0) {
                 clearInterval(timerInterval);
-                alert("Time is up! Submitting your exam.");
-                submitQuiz();
+                // Automatically submit without showing alert
+                submitQuiz(true); // Pass true to indicate automatic submission
             }
         }
-        // Initialize timer with the correct initial display
+                // Initialize timer with the correct initial display
         function startTimer() {
             // Set initial display
             const hours = Math.floor(totalSeconds / 3600);
@@ -831,20 +831,22 @@
         }
 
         // Submit quiz - Shows confirmation modal
-        async function submitQuiz() {
-            // Update modal with current stats
-            document.getElementById('answeredCountModal').textContent = 
-                `${questions.filter(q => q.selectedAnswer !== null).length}/${questions.length}`;
-            document.getElementById('timeRemainingModal').textContent = 
-                document.getElementById('timer').textContent;
-            
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('submitConfirmationModal'));
-            modal.show();
-        }
 
-        // Handle actual submission when confirmed
-        document.getElementById('confirmSubmitBtn').addEventListener('click', async function() {
+        async function submitQuiz(autoSubmit = false) {
+            if (!autoSubmit) {
+                // Update modal with current stats
+                document.getElementById('answeredCountModal').textContent = 
+                    `${questions.filter(q => q.selectedAnswer !== null).length}/${questions.length}`;
+                document.getElementById('timeRemainingModal').textContent = 
+                    document.getElementById('timer').textContent;
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('submitConfirmationModal'));
+                modal.show();
+                return;
+            }
+            
+            // If autoSubmit is true, proceed directly to submission
             // Calculate time taken
             const timeElapsed = Date.now() - startTime;
             const minutes = Math.floor(timeElapsed / 60000);
@@ -860,9 +862,6 @@
             });
             
             try {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('submitConfirmationModal'));
-                modal.hide();
-                
                 // Show loading state
                 document.querySelector(".container").innerHTML = `
                     <div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
@@ -891,7 +890,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Show success page
+                    // Show success page (same as before)
                     const resultHtml = `
                     <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
                         <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
@@ -904,7 +903,7 @@
                                         </svg>
                                     </div>
                                     <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
-                                    <p class="text-muted">Your assessment has been recorded</p>
+                                    <p class="text-muted">Time has ended. Your assessment has been recorded.</p>
                                 </div>
 
                                 <!-- Submission details in clean table format -->
@@ -969,8 +968,7 @@
                 console.error("Submission error:", error);
                 alert("Error submitting exam. Please try again.");
             }
-        });
-
+        }
         // Event listeners
         document.getElementById('prevBtn').addEventListener('click', () => {
             saveAnswer();
