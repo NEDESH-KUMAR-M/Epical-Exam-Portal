@@ -357,11 +357,17 @@
             transform: translateY(0);
         }
     </style>
+
 </head>
 <body>
     <header>
         <img src="{{ url_for('static', filename='image/logo.png') }}" width="50px" height="50px" alt="Epical Layouts Logo" />
         <h1>Epical Layouts</h1>
+        <script>
+            // Pass duration from Flask to JavaScript
+            const initialDuration = "{{ duration }}";
+            const initialTotalSeconds = "{{ total_seconds }}";
+        </script>
     </header>
     <div class="container">
         <div class="header">
@@ -489,7 +495,7 @@
         let questions = [];
         let currentQuestion = 0;
         let testId = "01"; // You can get this from URL or session
-        let totalSeconds = 600; // 10 minutes
+        let totalSeconds = initialTotalSeconds || 600;// 10 minutes
         let timerInterval;
         let startTime = Date.now();
 
@@ -501,27 +507,49 @@
         const unattemptedCount = document.getElementById('unattemptedCount');
         const timerEl = document.getElementById('timer');
 
+        
         // Timer function
         function updateTimer() {
-            const min = Math.floor(totalSeconds / 60);
-            const sec = totalSeconds % 60;
-            timerEl.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+            const hours = Math.floor(totalSeconds / 3600);
+            const remainingSeconds = totalSeconds % 3600;
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+
+            // Format as H:MM:SS (shows hours only if > 0)
+            let timeString;
+            if (hours > 0) {
+                timeString = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                timeString = `${minutes}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            timerEl.textContent = timeString;
             totalSeconds--;
-            
+
             if (totalSeconds < 0) {
                 clearInterval(timerInterval);
                 alert("Time is up! Submitting your exam.");
                 submitQuiz();
             }
         }
-
-        // Initialize timer
+        // Initialize timer with the correct initial display
         function startTimer() {
-            updateTimer();
+            // Set initial display
+            const hours = Math.floor(totalSeconds / 3600);
+            const remainingSeconds = totalSeconds % 3600;
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+
+            if (hours > 0) {
+                timerEl.textContent = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                timerEl.textContent = `${minutes}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            // Start counting down
             timerInterval = setInterval(updateTimer, 1000);
         }
-
-        // Fetch questions from backend
+                // Fetch questions from backend
         async function fetchQuestions() {
             try {
                 questionText.textContent = "Loading questions...";

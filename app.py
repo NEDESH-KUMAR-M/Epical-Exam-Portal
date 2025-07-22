@@ -106,7 +106,43 @@ def instructions():
 @app.route('/exam')
 @login_required
 def exam():
-    return render_template('exam.html', fullname=session.get('fullname'))
+    try:
+        # Get time from TIME sheet
+        time_sheet = client.open_by_key(SPREADSHEET_ID).worksheet("TIME")
+        time_data = time_sheet.get_all_records()
+        
+        # Get raw duration value from sheet
+        raw_duration = time_data[0]['Duration'] if time_data else "10:00"
+        
+        # Handle both cases: "HH:MM" format or total minutes (integer)
+        if isinstance(raw_duration, str) and ':' in raw_duration:
+            # Case 1: "HH:MM" format (e.g., "90:00")
+            hours, minutes = map(int, raw_duration.split(':'))
+            total_seconds = (hours * 3600) + (minutes * 60)
+            duration = f"{hours}:{minutes:02d}"  # Reformat for display
+        else:
+            # Case 2: Total minutes (e.g., 90)
+            try:
+                duration_minutes = int(raw_duration)
+                hours = duration_minutes // 60
+                minutes = duration_minutes % 60
+                total_seconds = duration_minutes * 60
+                duration = f"{hours}:{minutes:02d}"  # Convert to "H:MM" format
+            except (ValueError, TypeError):
+                raise ValueError("Invalid duration format in sheet")
+        
+        return render_template('exam.html', 
+                            fullname=session.get('fullname'),
+                            duration=duration,
+                            total_seconds=total_seconds)
+        
+    except Exception as e:
+        print(f"Error loading time: {e}")
+        # Default values if there's an error
+        return render_template('exam.html',
+                            fullname=session.get('fullname'),
+                            duration="10:00",
+                            total_seconds=600)
 
 
 
