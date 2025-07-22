@@ -70,6 +70,12 @@
             padding: 25px;
             display: flex;
             flex-direction: column;
+            min-height: 500px; /* Base height */
+            transition: min-height 0.3s ease;
+        }
+
+        .question-panel.has-image {
+            min-height: 650px; /* Taller height when image is present */
         }
 
         .question-header {
@@ -218,7 +224,13 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: 500px; /* Matches base question panel height */
+            transition: height 0.3s ease;
+            overflow: hidden; /* Ensures consistent rounded corners */
+        }
+
+        .navigation-panel.tall {
+            height: 650px; /* Matches tall question panel height */
         }
 
         .nav-header {
@@ -382,6 +394,14 @@
             .buttonss {
                 flex-direction: column;
             }
+            
+            .question-panel,
+            .question-panel.has-image,
+            .navigation-panel,
+            .navigation-panel.tall {
+                min-height: auto;
+                height: auto;
+            }
         }
     </style>
 </head>
@@ -400,7 +420,7 @@
 
         <div class="main-content">
             <!-- Question Panel -->
-            <div class="question-panel">
+            <div class="question-panel" id="questionPanel">
                 <div class="question-header" id="questionHeader">Q1</div>
                 <div id="questionImageContainer" style="margin: 15px 0; text-align: center;"></div>
                 <div class="question-text" id="questionText">
@@ -417,7 +437,7 @@
             </div>
 
             <!-- Navigation Panel -->
-            <div class="navigation-panel">
+            <div class="navigation-panel" id="navigationPanel">
                 <div class="nav-header">QUESTIONS</div>
                 <div class="nav-content">
                     <div class="question-grid" id="questionGrid">
@@ -529,6 +549,8 @@
         const questionGrid = document.getElementById('questionGrid');
         const unattemptedCount = document.getElementById('unattemptedCount');
         const timerEl = document.getElementById('timer');
+        const questionPanel = document.getElementById('questionPanel');
+        const navigationPanel = document.getElementById('navigationPanel');
 
         // Timer function
         function updateTimer() {
@@ -615,6 +637,10 @@
             imageContainer.innerHTML = ''; // Clear previous image
             
             if (q.image) {
+                // Add has-image class to question panel and tall class to navigation
+                questionPanel.classList.add('has-image');
+                navigationPanel.classList.add('tall');
+                
                 // Extract Google Drive file ID if it's a Google Drive URL
                 let imageUrl = q.image;
                 if (q.image.includes('drive.google.com')) {
@@ -639,8 +665,14 @@
                     errorMsg.style.color = '#999';
                     errorMsg.style.fontStyle = 'italic';
                     imageContainer.appendChild(errorMsg);
+                    questionPanel.classList.remove('has-image');
+                    navigationPanel.classList.remove('tall');
                 };
                 imageContainer.appendChild(img);
+            } else {
+                // Remove classes if no image
+                questionPanel.classList.remove('has-image');
+                navigationPanel.classList.remove('tall');
             }
             
             optionsContainer.innerHTML = '';
