@@ -375,7 +375,6 @@
             font-weight: bold;
             margin: 20px 0;
         }
-        
         .security-status-bar {
             display: flex;
             justify-content: space-around;
@@ -473,6 +472,14 @@
         .fullscreen-btn:hover {
             background: #2980b9;
         }
+        .violation-count {
+    display: none; /* Hidden by default */
+}
+
+.security-modal .violation-count {
+    display: block; /* Only shown in modal */
+}
+
         
         @media (max-width: 768px) {
             .main-content {
@@ -607,44 +614,6 @@
 
     <!-- Security Violation Modal -->
     <div class="security-modal" id="securityModal">
-        <div class="security-content">
-            <div class="security-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <h2>SECURITY VIOLATION DETECTED</h2>
-            
-            <div class="violation-count" id="violationCount">
-                0/2
-            </div>
-            
-            <p>You have switched tabs or windows during the exam.</p>
-            <p class="mb-4"><strong>Next violation will terminate your exam!</strong></p>
-            
-            <div class="security-status-bar">
-                <div class="security-status-item">
-                    <div class="security-status-icon security-active">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <div>Fullscreen</div>
-                </div>
-                <div class="security-status-item">
-                    <div class="security-status-icon security-active">
-                        <i class="fas fa-ban"></i>
-                    </div>
-                    <div>Copy/Paste</div>
-                </div>
-                <div class="security-status-item">
-                    <div class="security-status-icon security-active">
-                        <i class="fas fa-keyboard"></i>
-                    </div>
-                    <div>Function Keys</div>
-                </div>
-            </div>
-            
-            <p class="security-footer">
-                This exam is proctored. All activities are monitored and recorded.
-            </p>
-            
             <button class="btn btn-light mt-3" id="closeSecurityModal">
                 Continue Exam
             </button>
@@ -693,13 +662,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Security configuration
-        const SECURITY_CONFIG = {
-            maxViolations: 2, // Allowed violations before termination
-            violationCount: 0,
-            fullscreenEnabled: false,
-            isTerminated: false,
-            gracePeriodActive: false // No grace period
-        };
+       const SECURITY_CONFIG = {
+    maxViolations: 2,
+    violationCount: 0,
+    fullscreenEnabled: false,
+    isTerminated: false,
+    securityInitialized: false,
+    showViolationCount: false
+};
 
         // Quiz data and state
         let questions = [];
@@ -729,28 +699,24 @@
         
         // Initialize security features
         function initSecurity() {
-            // Start with fullscreen notice
-            showFullscreenNotice();
-            
-            // Disable context menu (right-click)
-            document.addEventListener('contextmenu', preventContextMenu);
-            
-            // Disable keyboard shortcuts
-            document.addEventListener('keydown', preventShortcuts);
-            
-            // Detect tab/window switching
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-            window.addEventListener('blur', handleWindowBlur);
-            
-            // Prevent dragging and dropping
-            preventDragAndDrop();
-            
-            // Prevent print screen
-            preventPrintScreen();
-            
-            // Disable function keys
-            disableFunctionKeys();
-        }
+    if (SECURITY_CONFIG.securityInitialized) return;
+    
+    // Show fullscreen notice and automatically enter fullscreen
+    showFullscreenNotice();
+    setTimeout(enterFullscreen, 1000); // Auto fullscreen after 1 second
+    
+    // Security event listeners
+    document.addEventListener('contextmenu', preventContextMenu);
+    document.addEventListener('keydown', preventShortcuts);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    preventDragAndDrop();
+    preventPrintScreen();
+    disableFunctionKeys();
+    
+    SECURITY_CONFIG.securityInitialized = true;
+}
+
         
         // Show fullscreen notice
         function showFullscreenNotice() {
@@ -766,15 +732,19 @@
         
         // Enter fullscreen mode
         function enterFullscreen() {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().then(() => {
-                    SECURITY_CONFIG.fullscreenEnabled = true;
-                    hideFullscreenNotice();
-                }).catch(err => {
-                    console.error("Fullscreen error:", err);
-                    showSecurityBanner("Could not enter fullscreen mode. Please allow fullscreen permissions.");
-                });
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen().then(() => {
+            SECURITY_CONFIG.fullscreenEnabled = true;
+            SECURITY_CONFIG.securityActive = true; // Enable security checks
+            hideFullscreenNotice();
+        }).catch(err => {
+            console.error("Fullscreen error:", err);
+            showSecurityBanner("Could not enter fullscreen mode. Please allow fullscreen permissions.");
+            // Count as violation if fullscreen fails
+            handleSecurityViolation();
+        });
+    
             } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
                 SECURITY_CONFIG.fullscreenEnabled = true;
@@ -816,6 +786,22 @@
     }
     SECURITY_CONFIG.fullscreenEnabled = false;
 }
+function handleSecurityViolation() {
+    if (!SECURITY_CONFIG.securityActive || SECURITY_CONFIG.isTerminated) return;
+    
+    // Set flag to show violation count
+    SECURITY_CONFIG.showViolationCount = true;
+    
+    SECURITY_CONFIG.violationCount++;
+    
+    if (SECURITY_CONFIG.violationCount >= SECURITY_CONFIG.maxViolations) {
+        terminateExam();
+    } else {
+        showSecurityModal();
+        showSecurityBanner(`WARNING: Violation detected! (${SECURITY_CONFIG.violationCount}/${SECURITY_CONFIG.maxViolations})`);
+    }
+}
+
         // Handle fullscreen change events
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -825,12 +811,12 @@
         function handleFullscreenChange() {
     SECURITY_CONFIG.fullscreenEnabled = checkFullscreen();
     if (!SECURITY_CONFIG.fullscreenEnabled && !SECURITY_CONFIG.isTerminated) {
-        // Count this as a violation
         handleSecurityViolation();
-        // Immediately return to fullscreen
-        enterFullscreen();
+        // Immediately try to return to fullscreen
+        setTimeout(enterFullscreen, 500);
     }
 }
+
 
         
         // Prevent context menu
@@ -923,25 +909,49 @@ window.addEventListener('keyup', function(e) {
 });
         
         // Handle security violation
-        function handleSecurityViolation() {
-            if (SECURITY_CONFIG.isTerminated) return;
-            
-            SECURITY_CONFIG.violationCount++;
-            violationCountEl.textContent = `${SECURITY_CONFIG.violationCount}/${SECURITY_CONFIG.maxViolations}`;
-            
-            if (SECURITY_CONFIG.violationCount >= SECURITY_CONFIG.maxViolations) {
-                terminateExam();
-            } else {
-                showSecurityModal();
-                showSecurityBanner(`WARNING: Violation detected! (${SECURITY_CONFIG.violationCount}/${SECURITY_CONFIG.maxViolations})`);
-            }
-        }
+       
         
         // Show security modal
-        function showSecurityModal() {
-            securityModal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
+       function showSecurityModal() {
+    const modalHTML = `
+    <div class="security-modal" id="securityModal" style="display: flex;">
+        <div class="security-content" style="background: #f8f9fa; color: #343a40; border-radius: 12px; padding: 30px; max-width: 500px; width: 100%; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+            <div class="security-icon" style="text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 3.5rem; color: #dc3545;"></i>
+            </div>
+            <h2 style="text-align: center; color: #dc3545; font-weight: 600; margin-bottom: 15px;">SECURITY VIOLATION DETECTED</h2>
+            
+            <div class="violation-count" style="text-align: center; font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: #dc3545;">
+                ${SECURITY_CONFIG.violationCount}/${SECURITY_CONFIG.maxViolations}
+            </div>
+            
+            <p style="text-align: center; margin-bottom: 15px; font-size: 1.1rem;">
+                You have switched tabs or windows during the exam.
+            </p>
+            <p style="text-align: center; font-weight: 600; margin-bottom: 25px; color: #dc3545;">
+                Next violation will terminate your exam!
+            </p>
+            
+            <div style="text-align: center; margin-top: 25px;">
+                <button class="btn btn-danger" id="closeSecurityModal" style="padding: 10px 25px; border-radius: 6px; font-weight: 500; background: #dc3545; border: none; color: white;">
+                    Continue Exam
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+
+
+    // Replace existing modal content
+    const securityModal = document.getElementById('securityModal');
+    securityModal.innerHTML = modalHTML;
+    securityModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Add event listener for close button
+    document.getElementById('closeSecurityModal').addEventListener('click', hideSecurityModal);
+}
+
         
         // Hide security modal
         function hideSecurityModal() {
@@ -962,34 +972,51 @@ window.addEventListener('keyup', function(e) {
         
         // Terminate exam on multiple violations
         function terminateExam() {
-    cleanupSecurity();
-    
-    const modalContent = document.querySelector('.security-content');
-    modalContent.innerHTML = `
-        <div class="security-icon">
-            <i class="fas fa-ban"></i>
-        </div>
-        <h2>EXAM TERMINATED</h2>
-        
-        <div class="violation-count" style="color: #ffcc00;">
-            <i class="fas fa-exclamation-circle"></i>
-        </div>
-        
-        <p>You have exceeded the allowed number of security violations.</p>
-        <p class="mb-4"><strong>Your exam has been terminated!</strong></p>
-        
-        <button class="btn btn-primary mt-3" id="backButton">
-            <i class="fas fa-arrow-left"></i> Back  
-        </button>
-        
-        <p class="security-footer mt-3">
-            Your responses have been saved and submitted.
-        </p>
-    `;
+    SECURITY_CONFIG.isTerminated = true;
 
+    const modalHTML = `
+    <div class="security-modal" id="securityModal" style="display: flex;">
+        <div class="security-content" style="background: #f8f9fa; color: #343a40; border-radius: 12px; padding: 30px; max-width: 500px; width: 100%; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+            <div class="security-icon" style="text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-ban" style="font-size: 3.5rem; color: #dc3545;"></i>
+            </div>
+            <h2 style="text-align: center; color: #dc3545; font-weight: 600; margin-bottom: 15px;">EXAM TERMINATED</h2>
+            
+            <div class="violation-count" style="text-align: center; font-size: 2.5rem; margin: 20px 0; color: #dc3545;">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            
+            <p style="text-align: center; margin-bottom: 15px; font-size: 1.1rem;">
+                You have exceeded the allowed number of security violations.
+            </p>
+            <p style="text-align: center; font-weight: 600; margin-bottom: 25px; color: #dc3545;">
+                Your exam has been terminated!
+            </p>
+            
+            <p class="security-footer" style="text-align: center; font-size: 0.9rem; color: #6c757d; margin-top: 20px;">
+                Your responses have been saved and submitted.
+            </p>
+            
+            <div style="text-align: center; margin-top: 25px;">
+                <button class="btn btn-primary" id="backButton" style="padding: 10px 25px; border-radius: 6px; font-weight: 500; background: #007bff; border: none; color: white;">
+                    <i class="fas fa-arrow-left"></i>   back
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+     const securityModal = document.getElementById('securityModal');
+    securityModal.innerHTML = modalHTML;
+    securityModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Add event listener for back button
     document.getElementById('backButton').addEventListener('click', function() {
         window.location.href = '/';
     });
+
+    // Exit fullscreen
+    exitFullscreen();
 
     setTimeout(() => {
         forceSubmitQuiz();
@@ -1411,6 +1438,7 @@ window.addEventListener('keyup', function(e) {
             const modal = new bootstrap.Modal(document.getElementById('submitConfirmationModal'));
             modal.show();
         });
+        
         
         // Confirm submit button
         document.getElementById('confirmSubmitBtn').addEventListener('click', () => {
