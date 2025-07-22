@@ -60,6 +60,7 @@
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 20px;
+            align-items: stretch;
         }
 
         .question-panel {
@@ -67,6 +68,8 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 25px;
+            display: flex;
+            flex-direction: column;
         }
 
         .question-header {
@@ -85,6 +88,7 @@
 
         .options {
             margin-bottom: 30px;
+            flex-grow: 1;
         }
 
         .option {
@@ -129,7 +133,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 20px;
             margin-top: 20px;
-            width:790px;
+            width: 790px;
         }
 
         .action-buttons {
@@ -178,6 +182,7 @@
         .btn-review.marked {
             background: #e9ecef;
         }
+
         .btn-save {
             background: #28a745;
             border-color: #28a745;
@@ -195,7 +200,6 @@
             padding: 15px;
             padding-left: 100px;
             padding-right: 100px;
-            
         }
 
         .btn-submit:hover {
@@ -207,13 +211,14 @@
             cursor: not-allowed;
         }
 
+        /* Navigation Panel Styles */
         .navigation-panel {
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            height: 500px;
-            overflow-y: scroll;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
 
         .nav-header {
@@ -221,9 +226,19 @@
             color: #1976d2;
             text-align: center;
             padding: 12px;
-            border-radius: 6px;
+            border-radius: 6px 6px 0 0;
             font-weight: bold;
-            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .nav-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .question-grid {
@@ -245,7 +260,7 @@
         }
 
         .question-btn.current {
-            background:     #00BFFF;
+            background: #00BFFF;
             color: white;
         }
 
@@ -294,6 +309,7 @@
 
         .legend {
             font-size: 12px;
+            margin-top: auto;
         }
 
         .legend-item {
@@ -331,6 +347,21 @@
             color: var(--primary-dark);
             font-weight: 600;
         }
+
+        .buttonss {
+            display: flex;
+        }
+
+        /* Custom Modal Animation */
+        .modal.fade .modal-dialog {
+            transform: translateY(-50px);
+            transition: transform 0.3s ease-out;
+        }
+
+        .modal.show .modal-dialog {
+            transform: translateY(0);
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -343,18 +374,14 @@
             .question-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
-        }
-        .buttonss{
-            display: flex;
-        }
-
-        /* Custom Modal Animation */
-        .modal.fade .modal-dialog {
-            transform: translateY(-50px);
-            transition: transform 0.3s ease-out;
-        }
-        .modal.show .modal-dialog {
-            transform: translateY(0);
+            
+            .action-panel {
+                width: 100%;
+            }
+            
+            .buttonss {
+                flex-direction: column;
+            }
         }
     </style>
 
@@ -381,6 +408,7 @@
             <!-- Question Panel -->
             <div class="question-panel">
                 <div class="question-header" id="questionHeader">Q1</div>
+                <div id="questionImageContainer" style="margin: 15px 0; text-align: center;"></div>
                 <div class="question-text" id="questionText">
                     Loading question...
                 </div>
@@ -397,37 +425,38 @@
             <!-- Navigation Panel -->
             <div class="navigation-panel">
                 <div class="nav-header">QUESTIONS</div>
-                
-                <div class="question-grid" id="questionGrid">
-                    <!-- Question buttons will be populated by JavaScript -->
-                </div>
+                <div class="nav-content">
+                    <div class="question-grid" id="questionGrid">
+                        <!-- Question buttons will be populated by JavaScript -->
+                    </div>
 
-                <div class="summary">
-                    <div class="summary-item">
-                        <span>Un-Attempted Question</span>
-                        <span class="badge" id="unattemptedCount">0</span>
+                    <div class="summary">
+                        <div class="summary-item">
+                            <span>Un-Attempted Question</span>
+                            <span class="badge" id="unattemptedCount">0</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #e0e0e0;"></div>
-                        <span>Not Answered</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #4caf50;"></div>
-                        <span>Answered</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #FFA500;"></div>
-                        <span>Marked for Review</span>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #e0e0e0;"></div>
+                            <span>Not Answered</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4caf50;"></div>
+                            <span>Answered</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #FFA500;"></div>
+                            <span>Marked for Review</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Action Panel -->
-         <div class="buttonss">
+        <div class="buttonss">
             <div class="action-panel">
                 <div class="action-buttons">
                     <button class="btn btn-previous" id="prevBtn" disabled>
@@ -574,6 +603,7 @@
                     options: [q.OptionA, q.OptionB, q.OptionC, q.OptionD].filter(opt => opt),
                     answer: q.Answer,
                     type: q.Type.toLowerCase(),
+                    image: q.ImageURL || null,
                     selectedAnswer: null,
                     isMarkedForReview: false,
                     isAttempted: false
@@ -608,8 +638,40 @@
             questionHeader.textContent = `Q${currentQuestion + 1}`;
             questionText.textContent = q.question;
             
-            optionsContainer.innerHTML = '';
+            // Handle question image
+            const imageContainer = document.getElementById('questionImageContainer');
+            imageContainer.innerHTML = ''; // Clear previous image
             
+            if (q.image) {
+                // Extract Google Drive file ID if it's a Google Drive URL
+                let imageUrl = q.image;
+                if (q.image.includes('drive.google.com')) {
+                    const fileId = q.image.match(/[-\w]{25,}/);
+                    if (fileId) {
+                        imageUrl = `https://drive.google.com/thumbnail?id=${fileId[0]}`;
+                    }
+                }
+                
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = 'Question Image';
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '300px';
+                img.style.borderRadius = '8px';
+                img.style.margin = '10px 0';
+                img.onerror = function() {
+                    // Fallback if image fails to load
+                    this.style.display = 'none';
+                    const errorMsg = document.createElement('p');
+                    errorMsg.textContent = 'Image not available';
+                    errorMsg.style.color = '#999';
+                    errorMsg.style.fontStyle = 'italic';
+                    imageContainer.appendChild(errorMsg);
+                };
+                imageContainer.appendChild(img);
+            }
+            
+            optionsContainer.innerHTML = '';
             q.options.forEach((option, index) => {
                 const optionDiv = document.createElement('div');
                 optionDiv.className = `option ${q.selectedAnswer === index ? 'selected' : ''}`;

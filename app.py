@@ -66,13 +66,12 @@ def login():
 
 
 @app.route('/admin_dashboard')
-@login_required
+
 def admin_dashboard():
     return "<h2>📊 Admin Dashboard</h2>"
 
 
 @app.route('/instructions')
-@login_required
 def instructions():
     try:
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
@@ -104,7 +103,6 @@ def instructions():
 
 
 @app.route('/exam')
-@login_required
 def exam():
     try:
         # Get time from TIME sheet
@@ -148,7 +146,7 @@ def exam():
 
 
 @app.route('/get_questions/<test_id>')
-@login_required
+
 def get_questions(test_id):
     try:
         # For TEST01 use Questions_TEST01
@@ -166,7 +164,7 @@ def get_questions(test_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/submit_exam', methods=['POST'])
-@login_required
+
 def submit_exam():
     try:
         data = request.get_json()
@@ -257,7 +255,6 @@ def submit_answer():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 @app.route('/log_violation', methods=['POST'])
-@login_required
 def log_violation():
     try:
         data = request.get_json()
