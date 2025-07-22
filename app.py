@@ -67,6 +67,7 @@ def login():
 
 @app.route('/admin_dashboard')
 @login_required
+
 def admin_dashboard():
     return "<h2>📊 Admin Dashboard</h2>"
 
