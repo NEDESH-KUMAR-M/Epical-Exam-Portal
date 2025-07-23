@@ -189,16 +189,17 @@ def submit_exam():
             
             # Handle both single and multi-select questions
             if question['Type'].lower() == 'multi':
-                correct_answers = set(question['Answer'].upper().split(','))
-                user_answers = set(user_answer.upper().split(',')) if user_answer else set()
-                correct_count = len(correct_answers & user_answers)
-                incorrect_count = len(user_answers - correct_answers)
+                # Normalize answers - remove spaces and make uppercase
+                correct_answers = set(a.strip().upper() for a in question['Answer'].split(','))
+                user_answers = set(a.strip().upper() for a in user_answer.split(',')) if user_answer else set()
                 
-                # Example: Award 0.5 points per correct answer, deduct 0.25 per wrong
-                question_score = max(0, (correct_count * 0.5) - (incorrect_count * 0.25))
-                correct += question_score
+                # All-or-nothing scoring (full point only if exact match)
+                if correct_answers == user_answers:
+                    correct += 1
+                # Alternative: Partial credit (1 point per correct answer, max 1 point)
+                # correct += min(1, len(correct_answers & user_answers) / len(correct_answers))
             else:  # single answer
-                if user_answer and user_answer.upper() == question['Answer'].upper():
+                if user_answer and user_answer.strip().upper() == question['Answer'].strip().upper():
                     correct += 1
         
         score = correct
@@ -208,7 +209,6 @@ def submit_exam():
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         try:
             results_sheet = spreadsheet.worksheet(f"Results_TEST{test_id}")
-            # Check if headers exist
             headers = results_sheet.row_values(1)
             if "TimeTaken" not in headers:
                 results_sheet.insert_cols([["TimeTaken"]], len(headers)+1)
@@ -223,7 +223,7 @@ def submit_exam():
                 "Correct", "Total", "Percentage", "TimeTaken"
             ])
         
-        # Record the submission with time taken
+        # Record the submission
         results_sheet.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             email,
@@ -232,11 +232,15 @@ def submit_exam():
             correct,
             total,
             f"{percentage:.2f}%",
-            time_taken  # Store the time taken
+            time_taken
         ])
         
         return jsonify({
             'success': True,
+            'score': score,
+            'correct': correct,
+            'total': total,
+            'percentage': f"{percentage:.2f}%",
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
         

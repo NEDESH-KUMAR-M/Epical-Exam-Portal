@@ -758,7 +758,14 @@
         const answers = {};
         questions.forEach(q => {
             if (q.selectedAnswer !== null) {
-                answers[q.id] = String.fromCharCode(65 + q.selectedAnswer);
+                // Handle both single and multi-select answers
+                if (Array.isArray(q.selectedAnswer)) {
+                    // For multi-select: convert array of indices to comma-separated letters (e.g., [0,2] -> "A,C")
+                    answers[q.id] = q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',');
+                } else {
+                    // For single-select: convert index to letter (e.g., 0 -> "A")
+                    answers[q.id] = String.fromCharCode(65 + q.selectedAnswer);
+                }
             }
         });
         
@@ -790,6 +797,7 @@
             const result = await response.json();
             
             if (result.success) {
+                // Enhanced results display with score information
                 const resultHtml = `
                 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
                     <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
@@ -830,16 +838,13 @@
                                             <td class="text-muted py-3 ps-4">Answered</td>
                                             <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer !== null).length}</td>
                                         </tr>
-                                        <tr>
-                                            <td class="text-muted py-3 ps-4">Not Answered</td>
-                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer === null).length}</td>
-                                        </tr>
+
                                     </tbody>
                                 </table>
                             </div>
 
                             <div class="text-center mt-4">
-                                <p class="small text-muted mb-2">Results will be announced shortly....</p>
+                                <p class="small text-muted mb-2">${result.message || 'Results will be announced shortly...'}</p>
                                 <p class="small text-muted">Await further communication from the examination committee.</p>
                             </div>
                         </div>
