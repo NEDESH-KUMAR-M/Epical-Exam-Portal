@@ -551,7 +551,7 @@
     let questions = [];
     let currentQuestion = 0;
     let testId = "01";
-    let totalSeconds = initialTotalSeconds || 600; // 10 minutes
+    let totalSeconds = parseInt(initialTotalSeconds) || 600; // Ensure it's a number// 10 minutes
     let timerInterval;
     let startTime = Date.now();
 
@@ -567,39 +567,167 @@
 
     // Timer function
     function updateTimer() {
-        const hours = Math.floor(totalSeconds / 3600);
-        const remainingSeconds = totalSeconds % 3600;
-        const minutes = Math.floor(remainingSeconds / 60);
-        const seconds = remainingSeconds % 60;
-
-        let timeString;
-        if (hours > 0) {
-            timeString = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        } else {
-            timeString = `${minutes}:${String(seconds).padStart(2, '0')}`;
-        }
-
-        timerEl.textContent = timeString;
-        totalSeconds--;
-
-        if (totalSeconds < 0) {
+        if (totalSeconds <= 0) {
             clearInterval(timerInterval);
-            performSubmission(); // Direct submission when time expires
+            timerEl.textContent = "00:00";
+            
+            // Direct submission without modal confirmation when time expires
+            const modal = bootstrap.Modal.getInstance(document.getElementById('submitConfirmationModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            performAutoSubmission();  // Special function for auto-submission
+            return;
         }
-    }
 
-    function startTimer() {
         const hours = Math.floor(totalSeconds / 3600);
         const remainingSeconds = totalSeconds % 3600;
         const minutes = Math.floor(remainingSeconds / 60);
         const seconds = remainingSeconds % 60;
 
-        if (hours > 0) {
-            timerEl.textContent = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        } else {
-            timerEl.textContent = `${minutes}:${String(seconds).padStart(2, '0')}`;
-        }
+        timerEl.textContent = hours > 0 
+            ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+            : `${minutes}:${String(seconds).padStart(2, '0')}`;
+        
+        totalSeconds--;
+    }
+// Special function for auto-submission
+    async function performAutoSubmission() {
+        // Clear the timer
+        clearInterval(timerInterval);
+        
+        const timeElapsed = Date.now() - startTime;
+        const minutes = Math.floor(timeElapsed / 60000);
+        const seconds = Math.floor((timeElapsed % 60000) / 1000);
+        const timeTaken = `${minutes}m ${seconds}s`;
+        
+        const answers = {};
+        questions.forEach(q => {
+            if (q.selectedAnswer !== null) {
+                answers[q.id] = String.fromCharCode(65 + q.selectedAnswer);
+            }
+        });
+        
+        try {
+            document.querySelector(".container").innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Time has ended. Submitting your exam automatically...</p>
+                    </div>
+                </div>
+            `;
+            
+            const response = await fetch('/submit_exam', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    test_id: testId,
+                    email: "{{ session.email }}",
+                    answers: answers,
+                    time_taken: timeTaken,
+                    auto_submitted: true
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show the same success page as manual submission
+                const resultHtml = `
 
+                <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
+                                <p class="text-muted">Your assessment has been recorded.</p>
+                            </div>
+
+                            <div class="border rounded-3 overflow-hidden mb-4">
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Submission Time</td>
+                                            <td class="fw-semibold py-3 pe-4">${new Date().toLocaleString('en-US', { 
+                                                weekday: 'short', 
+                                                year: 'numeric', 
+                                                month: 'short', 
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Time Taken</td>
+                                            <td class="fw-semibold py-3 pe-4">${timeTaken}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Total Questions</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.length}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Answered</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer !== null).length}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-3 ps-4">Not Answered</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer === null).length}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <p class="small text-muted mb-2">Results will be announced shortly....</p>
+                                <p class="small text-muted">Await further communication from the examination committee.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <style>
+                    .card {
+                        border-radius: 12px;
+                    }
+                    table td {
+                        white-space: nowrap;
+                    }
+                </style>
+                `;
+
+                document.querySelector(".container").innerHTML = resultHtml;
+            } else {
+                alert(`Error submitting exam: ${result.error}`);
+            }
+        } catch (error) {
+            console.error("Auto-submission error:", error);
+            alert("Error submitting exam automatically. Please contact support.");
+        }
+    }    
+    function startTimer() {
+        // Clear any existing timer
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        
+        // Ensure totalSeconds is a number
+        totalSeconds = parseInt(totalSeconds);
+        
+        // Initial display
+        updateTimer();
+        
+        // Start the countdown
         timerInterval = setInterval(updateTimer, 1000);
     }
 
@@ -614,8 +742,14 @@
     }
 
     async function performSubmission() {
+        // Clear the timer
+        clearInterval(timerInterval);
+        
+        // Hide modal if it exists
         const modal = bootstrap.Modal.getInstance(document.getElementById('submitConfirmationModal'));
-        modal.hide();
+        if (modal) {
+            modal.hide();
+        }
         const timeElapsed = Date.now() - startTime;
         const minutes = Math.floor(timeElapsed / 60000);
         const seconds = Math.floor((timeElapsed % 60000) / 1000);
