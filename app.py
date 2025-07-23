@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from functools import wraps
 from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 app.secret_key = 'your-very-secure-key'  # Change to a strong key
@@ -17,7 +17,6 @@ client = gspread.authorize(creds)
 login_sheet = client.open_by_key(SPREADSHEET_ID).worksheet("USER")
 
 # Decorator
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -28,7 +27,6 @@ def login_required(f):
     return decorated_function
 
 # Routes
-
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -44,7 +42,7 @@ def login():
 
         for user in users:
             sheet_email = user.get('EmployeeMailId', '').strip().lower()
-            sheet_password = user.get('Password', '').strip()  # Now works with cleaned header
+            sheet_password = user.get('Password', '').strip()
             
             if email == sheet_email:
                 if password == sheet_password:
@@ -63,31 +61,21 @@ def login():
 
     return render_template('login.html')
 
-
-
 @app.route('/admin_dashboard')
-
 @login_required
-
-
 def admin_dashboard():
     return "<h2>📊 Admin Dashboard</h2>"
 
-
 @app.route('/instructions')
+@login_required
 def instructions():
     try:
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
-
-        # Fetch instructions
         instructions_sheet = spreadsheet.worksheet("Instructions")
         instructions = instructions_sheet.col_values(1)
-
-        # Fetch metadata
         meta_sheet = spreadsheet.worksheet("TIME")
         meta_records = meta_sheet.get_all_records()
         meta = meta_records[0] if meta_records else {}
-
         duration = meta.get('Duration', 'N/A')
         total_questions = meta.get('TotalQuestions', 'N/A')
 
@@ -102,60 +90,48 @@ def instructions():
                            duration=duration,
                            total_questions=total_questions)
 
-
-
-
 @app.route('/exam')
+@login_required
 def exam():
     try:
-        # Get time from TIME sheet
         time_sheet = client.open_by_key(SPREADSHEET_ID).worksheet("TIME")
         time_data = time_sheet.get_all_records()
-        
-        # Get raw duration value from sheet
         raw_duration = time_data[0]['Duration'] if time_data else "10:00"
         
-        # Handle both cases: "HH:MM" format or total minutes (integer)
         if isinstance(raw_duration, str) and ':' in raw_duration:
-            # Case 1: "HH:MM" format (e.g., "90:00")
             hours, minutes = map(int, raw_duration.split(':'))
             total_seconds = (hours * 3600) + (minutes * 60)
-            duration = f"{hours}:{minutes:02d}"  # Reformat for display
+            duration = f"{hours}:{minutes:02d}"
         else:
-            # Case 2: Total minutes (e.g., 90)
             try:
                 duration_minutes = int(raw_duration)
                 hours = duration_minutes // 60
                 minutes = duration_minutes % 60
                 total_seconds = duration_minutes * 60
-                duration = f"{hours}:{minutes:02d}"  # Convert to "H:MM" format
+                duration = f"{hours}:{minutes:02d}"
             except (ValueError, TypeError):
                 raise ValueError("Invalid duration format in sheet")
         
         return render_template('exam.html', 
-                            fullname=session.get('fullname'),
-                            duration=duration,
-                            total_seconds=total_seconds)
+                              fullname=session.get('fullname'),
+                              duration=duration,
+                              total_seconds=total_seconds)
         
     except Exception as e:
         print(f"Error loading time: {e}")
-        # Default values if there's an error
         return render_template('exam.html',
-                            fullname=session.get('fullname'),
-                            duration="10:00",
-                            total_seconds=600)
-
-
-
+                              fullname=session.get('fullname'),
+                              duration="10:00",
+                              total_seconds=600)
 
 @app.route('/get_questions/<test_id>')
+@login_required
 def get_questions(test_id):
     try:
         worksheet_name = f"Questions_TEST{test_id}"
         q_sheet = client.open_by_key(SPREADSHEET_ID).worksheet(worksheet_name)
         questions = q_sheet.get_all_records(head=1)
         
-        # Ensure Type field is properly formatted
         for q in questions:
             q['Type'] = q.get('Type', 'single').lower().strip()
         
@@ -163,9 +139,8 @@ def get_questions(test_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-
 @app.route('/submit_exam', methods=['POST'])
+@login_required
 def submit_exam():
     try:
         data = request.get_json()
@@ -187,31 +162,24 @@ def submit_exam():
             qid = str(question['QID'])
             user_answer = data.get('answers', {}).get(qid, '')
             
-            # Handle both single and multi-select questions
             if question['Type'].lower() == 'multi':
-                # Normalize answers - remove spaces and make uppercase
                 correct_answers = set(a.strip().upper() for a in question['Answer'].split(','))
                 user_answers = set(a.strip().upper() for a in user_answer.split(',')) if user_answer else set()
-                
-                # All-or-nothing scoring (full point only if exact match)
                 if correct_answers == user_answers:
                     correct += 1
-                # Alternative: Partial credit (1 point per correct answer, max 1 point)
-                # correct += min(1, len(correct_answers & user_answers) / len(correct_answers))
-            else:  # single answer
+            else:
                 if user_answer and user_answer.strip().upper() == question['Answer'].strip().upper():
                     correct += 1
         
         score = correct
         percentage = (correct / total) * 100 if total > 0 else 0
         
-        # Get or create results sheet
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         try:
             results_sheet = spreadsheet.worksheet(f"Results_TEST{test_id}")
             headers = results_sheet.row_values(1)
             if "TimeTaken" not in headers:
-                results_sheet.insert_cols([["TimeTaken"]], len(headers)+1)
+                results_sheet.append_row(["TimeTaken"], col=len(headers)+1)
         except gspread.exceptions.WorksheetNotFound:
             results_sheet = spreadsheet.add_worksheet(
                 title=f"Results_TEST{test_id}", 
@@ -223,7 +191,6 @@ def submit_exam():
                 "Correct", "Total", "Percentage", "TimeTaken"
             ])
         
-        # Record the submission
         results_sheet.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             email,
@@ -246,11 +213,7 @@ def submit_exam():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('✅ Logged out', 'info')
-    return redirect(url_for('login'))
+
 @app.route('/submit_answer', methods=['POST'])
 @login_required
 def submit_answer():
@@ -258,16 +221,38 @@ def submit_answer():
         data = request.get_json()
         test_id = data.get('test_id')
         qid = data.get('qid')
-        selected_answers = data.get('selected_answers', [])
+        selected_answers = data.get('selected_answers', '')
         status = data.get('status', 'answered')
         
-        # In a real implementation, you'd store these answers in a session or database
-        # For now, we'll just return success
+        # Optionally store answers in a Google Sheet (e.g., Answers_TEST{test_id})
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        try:
+            answers_sheet = spreadsheet.worksheet(f"Answers_TEST{test_id}")
+        except gspread.exceptions.WorksheetNotFound:
+            answers_sheet = spreadsheet.add_worksheet(
+                title=f"Answers_TEST{test_id}",
+                rows=100,
+                cols=6
+            )
+            answers_sheet.append_row([
+                "Timestamp", "Email", "QID", "SelectedAnswers", "Status"
+            ])
+        
+        answers_sheet.append_row([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            session.get('email'),
+            qid,
+            selected_answers,
+            status
+        ])
+        
         return jsonify({'success': True})
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/log_violation', methods=['POST'])
+@login_required
 def log_violation():
     try:
         data = request.get_json()
@@ -279,7 +264,6 @@ def log_violation():
         if not all([test_id, email, violation, violation_count]):
             return jsonify({'success': False, 'error': 'Missing data'}), 400
         
-        # Get or create violations sheet
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         try:
             violations_sheet = spreadsheet.worksheet(f"Violations_TEST{test_id}")
@@ -294,7 +278,6 @@ def log_violation():
                 "ViolationCount", "ActionTaken"
             ])
         
-        # Record the violation
         violations_sheet.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             email,
@@ -309,5 +292,141 @@ def log_violation():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/save_exam_state', methods=['POST'])
+@login_required
+def save_exam_state():
+    try:
+        data = request.get_json()
+        test_id = data.get('test_id')
+        email = session.get('email')
+        state = data.get('state')
+        
+        if not all([test_id, email, state]):
+            return jsonify({'success': False, 'error': 'Missing data'}), 400
+        
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        try:
+            state_sheet = spreadsheet.worksheet(f"States_TEST{test_id}")
+        except gspread.exceptions.WorksheetNotFound:
+            state_sheet = spreadsheet.add_worksheet(
+                title=f"States_TEST{test_id}",
+                rows=100,
+                cols=6
+            )
+            state_sheet.append_row([
+                "Timestamp", "Email", "CurrentQuestion", "Questions", "TotalSeconds", "ViolationCount"
+            ])
+        
+        # Convert questions array to JSON string for storage
+        import json
+        questions_json = json.dumps(state.get('questions', []))
+        
+        # Check if a row for this user already exists
+        all_data = state_sheet.get_all_values()
+        headers = all_data[0]
+        email_col = headers.index("Email") + 1
+        user_row = None
+        for idx, row in enumerate(all_data[1:], start=2):
+            if row[email_col - 1] == email:
+                user_row = idx
+                break
+        
+        # Prepare row data
+        row_data = [
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            email,
+            str(state.get('currentQuestion', 0)),
+            questions_json,
+            str(state.get('totalSeconds', 0)),
+            str(state.get('violationCount', 0))
+        ]
+        
+        if user_row:
+            # Update existing row
+            state_sheet.update(f"A{user_row}:F{user_row}", [row_data])
+        else:
+            # Append new row
+            state_sheet.append_row(row_data)
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/get_exam_state/<test_id>/<email>', methods=['GET'])
+@login_required
+def get_exam_state(test_id, email):
+    try:
+        if email != session.get('email'):
+            return jsonify({'success': False, 'error': 'Unauthorized access'}), 403
+        
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        try:
+            state_sheet = spreadsheet.worksheet(f"States_TEST{test_id}")
+        except gspread.exceptions.WorksheetNotFound:
+            return jsonify({'success': False, 'error': 'No state found'}), 404
+        
+        all_data = state_sheet.get_all_values()
+        headers = all_data[0]
+        email_col = headers.index("Email") + 1
+        for row in all_data[1:]:
+            if row[email_col - 1] == email:
+                import json
+                state = {
+                    'currentQuestion': int(row[headers.index("CurrentQuestion")]),
+                    'questions': json.loads(row[headers.index("Questions")]),
+                    'totalSeconds': int(row[headers.index("TotalSeconds")]),
+                    'violationCount': int(row[headers.index("ViolationCount")]),
+                    'startTime': int(datetime.now().timestamp() * 1000 - 
+                                  (int(row[headers.index("TotalSeconds")]) * 1000))
+                }
+                return jsonify({'success': True, 'state': state})
+        
+        return jsonify({'success': False, 'error': 'No state found'}), 404
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/clear_exam_state', methods=['POST'])
+@login_required
+def clear_exam_state():
+    try:
+        data = request.get_json()
+        test_id = data.get('test_id')
+        email = session.get('email')
+        
+        if not all([test_id, email]):
+            return jsonify({'success': False, 'error': 'Missing data'}), 400
+        
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        try:
+            state_sheet = spreadsheet.worksheet(f"States_TEST{test_id}")
+        except gspread.exceptions.WorksheetNotFound:
+            return jsonify({'success': True})  # No state to clear
+        
+        all_data = state_sheet.get_all_values()
+        headers = all_data[0]
+        email_col = headers.index("Email") + 1
+        user_row = None
+        for idx, row in enumerate(all_data[1:], start=2):
+            if row[email_col - 1] == email:
+                user_row = idx
+                break
+        
+        if user_row:
+            state_sheet.delete_rows(user_row)
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/logout')
+@login_required
+def logout():
+    session.clear()
+    flash('✅ Logged out', 'info')
+    return redirect(url_for('login'))
+
 if __name__ == '__main__':
-    app.run(debug=True,port = 5000)  # Change port if needed
+    app.run(debug=True, port=5000)
