@@ -35,29 +35,48 @@ def login():
 
         # Get data with proper header handling
         all_data = login_sheet.get_all_values()
-        headers = [h.strip() for h in all_data[0]]  # Clean headers
-        users = []
-        for row in all_data[1:]:
-            users.append(dict(zip(headers, row)))
+        headers = [h.strip() for h in all_data[0]]
+        users = [dict(zip(headers, row)) for row in all_data[1:]]
 
-        for user in users:
+        # Ensure IsActive column exists
+        if 'IsActive' not in headers:
+            login_sheet.update_cell(1, len(headers) + 1, 'IsActive')
+            headers.append('IsActive')
+            all_data = login_sheet.get_all_values()
+            users = [dict(zip(headers, row)) for row in all_data[1:]]
+
+        user_row = None
+        user_idx = None
+        for idx, user in enumerate(users, start=2):
             sheet_email = user.get('EmployeeMailId', '').strip().lower()
-            sheet_password = user.get('Password', '').strip()
-            
             if email == sheet_email:
-                if password == sheet_password:
-                    session['logged_in'] = True
-                    session['email'] = email
-                    session['fullname'] = user.get('FullName', '')
-                    session['role'] = user.get('Role', '').lower()
-                    return redirect(url_for('admin_dashboard' if session['role'] == 'admin' else 'instructions'))
-                else:
-                    flash('Incorrect password', 'danger')
+                if user.get('IsActive', '').lower() == 'true':
+                    flash("⚠️ You are already logged in for an exam. Please complete or logout from your active session.", "danger")
+                    return redirect(url_for('login'))
+                if password == user.get('Password', '').strip():
+                    user_row = user
+                    user_idx = idx
                     break
         else:
             flash('Email not found', 'danger')
+            return redirect(url_for('login'))
 
-        return redirect(url_for('login'))
+        if not user_row:
+            flash('Incorrect password', 'danger')
+            return redirect(url_for('login'))
+
+        # Set IsActive to True
+        try:
+            login_sheet.update_cell(user_idx, headers.index('IsActive') + 1, 'True')
+        except Exception as e:
+            flash(f"Error setting active session: {str(e)}", "danger")
+            return redirect(url_for('login'))
+
+        session['logged_in'] = True
+        session['email'] = email
+        session['fullname'] = user_row.get('FullName', '')
+        session['role'] = user_row.get('Role', '').lower()
+        return redirect(url_for('admin_dashboard' if session['role'] == 'admin' else 'instructions'))
 
     return render_template('login.html')
 
@@ -151,6 +170,24 @@ def submit_exam():
         if not test_id or not email:
             return jsonify({'success': False, 'error': 'Missing data'}), 400
         
+        # Clear IsActive flag
+        all_data = login_sheet.get_all_values()
+        headers = [h.strip() for h in all_data[0]]
+        if 'IsActive' not in headers:
+            login_sheet.update_cell(1, len(headers) + 1, 'IsActive')
+            headers.append('IsActive')
+            all_data = login_sheet.get_all_values()
+        
+        email_col = headers.index('EmployeeMailId') + 1
+        is_active_col = headers.index('IsActive') + 1
+        user_row = None
+        for idx, row in enumerate(all_data[1:], start=2):
+            if row[email_col - 1].strip().lower() == email:
+                user_row = idx
+                break
+        if user_row:
+            login_sheet.update_cell(user_row, is_active_col, 'False')
+
         worksheet_name = f"Questions_TEST{test_id}"
         q_sheet = client.open_by_key(SPREADSHEET_ID).worksheet(worksheet_name)
         questions = q_sheet.get_all_records(head=1)
@@ -224,7 +261,6 @@ def submit_answer():
         selected_answers = data.get('selected_answers', '')
         status = data.get('status', 'answered')
         
-        # Optionally store answers in a Google Sheet (e.g., Answers_TEST{test_id})
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         try:
             answers_sheet = spreadsheet.worksheet(f"Answers_TEST{test_id}")
@@ -317,11 +353,9 @@ def save_exam_state():
                 "Timestamp", "Email", "CurrentQuestion", "Questions", "TotalSeconds", "ViolationCount"
             ])
         
-        # Convert questions array to JSON string for storage
         import json
         questions_json = json.dumps(state.get('questions', []))
         
-        # Check if a row for this user already exists
         all_data = state_sheet.get_all_values()
         headers = all_data[0]
         email_col = headers.index("Email") + 1
@@ -331,7 +365,6 @@ def save_exam_state():
                 user_row = idx
                 break
         
-        # Prepare row data
         row_data = [
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             email,
@@ -342,10 +375,8 @@ def save_exam_state():
         ]
         
         if user_row:
-            # Update existing row
             state_sheet.update(f"A{user_row}:F{user_row}", [row_data])
         else:
-            # Append new row
             state_sheet.append_row(row_data)
         
         return jsonify({'success': True})
@@ -421,12 +452,68 @@ def clear_exam_state():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/clear_session', methods=['POST'])
+@login_required
+def clear_session():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        # Only allow admins to clear sessions
+        if session.get('role') != 'admin':
+            return jsonify({'success': False, 'error': 'Unauthorized: Only admins can clear sessions'}), 403
+        
+        if not email:
+            return jsonify({'success': False, 'error': 'Missing email'}), 400
+        
+        all_data = login_sheet.get_all_values()
+        headers = [h.strip() for h in all_data[0]]
+        if 'IsActive' not in headers:
+            return jsonify({'success': True})  # No IsActive column, nothing to clear
+        
+        email_col = headers.index('EmployeeMailId') + 1
+        is_active_col = headers.index('IsActive') + 1
+        user_row = None
+        for idx, row in enumerate(all_data[1:], start=2):
+            if row[email_col - 1].strip().lower() == email.lower():
+                user_row = idx
+                break
+        
+        if user_row:
+            login_sheet.update_cell(user_row, is_active_col, 'False')
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/logout')
 @login_required
 def logout():
-    session.clear()
-    flash('✅ Logged out', 'info')
-    return redirect(url_for('login'))
+    try:
+        email = session.get('email')
+        
+        # Clear IsActive flag
+        all_data = login_sheet.get_all_values()
+        headers = [h.strip() for h in all_data[0]]
+        if 'IsActive' in headers:
+            email_col = headers.index('EmployeeMailId') + 1
+            is_active_col = headers.index('IsActive') + 1
+            user_row = None
+            for idx, row in enumerate(all_data[1:], start=2):
+                if row[email_col - 1].strip().lower() == email:
+                    user_row = idx
+                    break
+            if user_row:
+                login_sheet.update_cell(user_row, is_active_col, 'False')
+
+        session.clear()
+        flash('✅ Logged out', 'info')
+        return redirect(url_for('login'))
+        
+    except Exception as e:
+        flash(f"Error during logout: {str(e)}", "danger")
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
