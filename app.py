@@ -149,51 +149,57 @@ def exam():
 
 
 @app.route('/get_questions/<test_id>')
-
 def get_questions(test_id):
     try:
-        # For TEST01 use Questions_TEST01
         worksheet_name = f"Questions_TEST{test_id}"
-        
-        spreadsheet = client.open_by_key(SPREADSHEET_ID)
-        q_sheet = spreadsheet.worksheet(worksheet_name)
+        q_sheet = client.open_by_key(SPREADSHEET_ID).worksheet(worksheet_name)
         questions = q_sheet.get_all_records(head=1)
         
-        return jsonify(questions)
+        # Ensure Type field is properly formatted
+        for q in questions:
+            q['Type'] = q.get('Type', 'single').lower().strip()
         
-    except gspread.exceptions.WorksheetNotFound:
-        return jsonify({'error': f'Worksheet {worksheet_name} not found'}), 404
+        return jsonify(questions)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/submit_exam', methods=['POST'])
 
+
+@app.route('/submit_exam', methods=['POST'])
 def submit_exam():
     try:
         data = request.get_json()
         test_id = data.get('test_id')
         email = session.get('email')
-        time_taken = data.get('time_taken')  # Get time taken from frontend
+        time_taken = data.get('time_taken')
         
         if not test_id or not email:
             return jsonify({'success': False, 'error': 'Missing data'}), 400
         
-        # Get the test questions and answers
         worksheet_name = f"Questions_TEST{test_id}"
         q_sheet = client.open_by_key(SPREADSHEET_ID).worksheet(worksheet_name)
         questions = q_sheet.get_all_records(head=1)
         
-        # Get all user answers
-        user_answers = data.get('answers', {})
-        
-        # Calculate score
         correct = 0
         total = len(questions)
         
         for question in questions:
             qid = str(question['QID'])
-            if qid in user_answers and user_answers[qid] == question['Answer']:
-                correct += 1
+            user_answer = data.get('answers', {}).get(qid, '')
+            
+            # Handle both single and multi-select questions
+            if question['Type'].lower() == 'multi':
+                correct_answers = set(question['Answer'].upper().split(','))
+                user_answers = set(user_answer.upper().split(',')) if user_answer else set()
+                correct_count = len(correct_answers & user_answers)
+                incorrect_count = len(user_answers - correct_answers)
+                
+                # Example: Award 0.5 points per correct answer, deduct 0.25 per wrong
+                question_score = max(0, (correct_count * 0.5) - (incorrect_count * 0.25))
+                correct += question_score
+            else:  # single answer
+                if user_answer and user_answer.upper() == question['Answer'].upper():
+                    correct += 1
         
         score = correct
         percentage = (correct / total) * 100 if total > 0 else 0

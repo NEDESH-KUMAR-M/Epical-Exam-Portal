@@ -832,14 +832,22 @@
             navigationPanel.classList.remove('tall');
         }
         
+// Inside renderQuestion() function
         optionsContainer.innerHTML = '';
         q.options.forEach((option, index) => {
             const optionDiv = document.createElement('div');
-            optionDiv.className = `option ${q.selectedAnswer === index ? 'selected' : ''}`;
+            optionDiv.className = `option ${Array.isArray(q.selectedAnswer) ? 
+                (q.selectedAnswer.includes(index) ? 'selected' : '') : 
+                (q.selectedAnswer === index ? 'selected' : '')}`;
             optionDiv.onclick = () => selectAnswer(index);
             
+            // Change input type based on question type
+            const inputType = q.type === 'multi' ? 'checkbox' : 'radio';
             optionDiv.innerHTML = `
-                <input type="radio" name="answer" ${q.selectedAnswer === index ? 'checked' : ''}>
+                <input type="${inputType}" name="answer" 
+                    ${Array.isArray(q.selectedAnswer) ? 
+                        (q.selectedAnswer.includes(index) ? 'checked' : '') : 
+                        (q.selectedAnswer === index ? 'checked' : '')}>
                 <span class="option-label">${String.fromCharCode(65 + index)}</span>
                 <span class="option-text">${option}</span>
             `;
@@ -853,16 +861,37 @@
         document.getElementById('reviewBtn').textContent = 
             q.isMarkedForReview ? 'Unmark for Review' : 'Mark for Review';
         document.getElementById('reviewBtn').classList.toggle('marked', q.isMarkedForReview);
-    }
+        }
 
     // Select answer
-    function selectAnswer(optionIndex) {
-        questions[currentQuestion].selectedAnswer = optionIndex;
-        questions[currentQuestion].isAttempted = true;
-        renderQuestion();
-        renderQuestionGrid();
-        updateSummary();
-    }
+        function selectAnswer(optionIndex) {
+            const currentQ = questions[currentQuestion];
+            
+            if (currentQ.type === 'multi') {
+                // For multi-select questions
+                if (!Array.isArray(currentQ.selectedAnswer)) {
+                    currentQ.selectedAnswer = [];
+                }
+                
+                const index = currentQ.selectedAnswer.indexOf(optionIndex);
+                if (index === -1) {
+                    currentQ.selectedAnswer.push(optionIndex);
+                } else {
+                    currentQ.selectedAnswer.splice(index, 1);
+                }
+            } else {
+                // For single-select questions (original behavior)
+                currentQ.selectedAnswer = optionIndex;
+            }
+            
+            currentQ.isAttempted = currentQ.type === 'multi' ? 
+                currentQ.selectedAnswer.length > 0 : 
+                currentQ.selectedAnswer !== null;
+            
+            renderQuestion();
+            renderQuestionGrid();
+            updateSummary();
+        }
 
     // Mark for review
     function toggleReview() {
@@ -914,11 +943,12 @@
     function getQuestionStatus(question, index) {
         if (index === currentQuestion) return 'current';
         if (question.isMarkedForReview) return 'review';
-        if (question.selectedAnswer !== null) return 'answered';
+        if (question.type === 'multi' ? 
+            (Array.isArray(question.selectedAnswer) && question.selectedAnswer.length > 0) : 
+            (question.selectedAnswer !== null)) return 'answered';
         if (question.isAttempted) return 'attempted';
         return 'unattempted';
     }
-
     // Update summary
     function updateSummary() {
         const unattempted = questions.filter(q => q.selectedAnswer === null && !q.isAttempted).length;
@@ -931,12 +961,23 @@
         if (questions.length === 0) return;
         
         const q = questions[currentQuestion];
-        const selectedAnswers = q.selectedAnswer !== null ? [String.fromCharCode(65 + q.selectedAnswer)] : [];
+        let selectedAnswers;
+        
+        // Handle both single and multi-select while maintaining original format
+        if (q.type === 'multi' && Array.isArray(q.selectedAnswer)) {
+            // Convert array of indices to comma-separated letters (e.g., [0,2] -> "A,C")
+            selectedAnswers = q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',');
+        } else if (q.selectedAnswer !== null) {
+            // Original format for single-select (just the letter)
+            selectedAnswers = String.fromCharCode(65 + q.selectedAnswer);
+        } else {
+            selectedAnswers = '';
+        }
         
         const data = {
             test_id: testId,
             qid: q.id,
-            selected_answers: selectedAnswers,
+            selected_answers: selectedAnswers, // Now compatible with both types
             status: status
         };
         
@@ -948,6 +989,7 @@
             body: JSON.stringify(data)
         }).catch(error => console.error('Error saving answer:', error));
     }
+
 
     // Event listeners
     document.getElementById('prevBtn').addEventListener('click', () => {
