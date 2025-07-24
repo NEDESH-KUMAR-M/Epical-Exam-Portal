@@ -7,167 +7,414 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            background: linear-gradient(135deg, #f5f7fa, #e8f5e9); /* Subtle green gradient */
-            font-family: 'Open Sans', 'Helvetica Neue', sans-serif;
-            color: #2e7d32; /* Forest green text */
-            min-height: 100vh;
-            padding-bottom: 20px;
-        }
-        .container {
-            max-width: 1350px;
-            margin-top: 40px;
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e0f2e9; /* Light green border */
-        }
-        h1, h2, h3 {
-            color: #1b5e20; /* Deep green for headings */
-            font-weight: 600;
-        }
-        .card {
-            border: none;
-            border-radius: 10px;
-            background: #ffffff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: box-shadow 0.2s ease;
-        }
-        .card:hover {
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        .card-header {
-            background: #4caf50; /* Green header */
-            color: #ffffff;
-            font-weight: 500;
-            border-bottom: 1px solid #388e3c;
-            padding: 15px;
-        }
-        .table {
-            color: #2e7d32;
-            background: #ffffff;
-            border-radius: 8px;
-        }
-        .table thead th {
-            background: #66bb6a; /* Light green header */
-            color: #ffffff;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            border-bottom: 2px solid #4caf50;
-        }
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: #f1f8e9; /* Very light green */
-        }
-        .btn-primary {
-            background-color: #4caf50;
-            border-color: #388e3c;
-            color: #ffffff;
-            font-weight: 500;
-        }
-        .btn-primary:hover {
-            background-color: #388e3c;
-            border-color: #2e7d32;
-        }
-        .btn-success {
-            background-color: #66bb6a;
-            border-color: #4caf50;
-            color: #ffffff;
-        }
-        .btn-success:hover {
-            background-color: #43a047;
-            border-color: #388e3c;
-        }
-        .btn-danger {
-            background-color: #d32f2f;
-            border-color: #c62828;
-            color: #ffffff;
-        }
-        .btn-danger:hover {
-            background-color: #c62828;
-            border-color: #b71c1c;
-        }
-        .btn-download {
-            margin-bottom: 20px;
-        }
-        .instructions-form {
-            margin-top: 30px;
-        }
-        .instruction-input {
-            margin-bottom: 15px;
-        }
-        .instruction-input .form-control {
-            border-color: #a5d6a7;
-            border-radius: 6px;
-            background-color: #f9fbfa;
-        }
-        .instruction-input .form-control:focus {
-            border-color: #66bb6a;
-            box-shadow: 0 0 6px rgba(102, 187, 106, 0.3);
-        }
-        .alert {
-            margin-bottom: 20px;
-            border-radius: 6px;
-            border: 1px solid #e0e0e0;
-        }
-        .alert-success {
-            background-color: #e8f5e9;
-            border-color: #66bb6a;
-            color: #1b5e20;
-        }
-        .alert-danger {
-            background-color: #ffebee;
-            border-color: #ef5350;
-            color: #b71c1c;
-        }
-        .table-responsive {
-            max-height: 450px;
-            overflow-y: auto;
-            display: block;
-        }
-        .table-responsive::-webkit-scrollbar {
-            width: 8px;
-        }
-        .table-responsive::-webkit-scrollbar-track {
-            background: #f1f8e9;
-            border-radius: 4px;
-        }
-        .table-responsive::-webkit-scrollbar-thumb {
-            background: #66bb6a;
-            border-radius: 4px;
-        }
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-            background: #4caf50;
-        }
+        :root {
+  --primary-color: #0d6efd;
+  --primary-light: #3e8cf4;
+  --primary-lighter: #e7f1ff;
+  --primary-lightest: #f6faff;
+  --accent-color: #1b1f3b;
+  --danger-color: #dc3545;
+  --text-color: #212529;
+  --text-light: #6c757d;
+  --border-radius: 12px;
+  --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --transition: all 0.25s ease-in-out;
+}
+
+
+body {
+    background: linear-gradient(160deg, #f9fafb, #e0f2fe); /* Modern gradient */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* Premium font stack */
+    color: var(--text-color);
+    min-height: 100vh;
+    padding-bottom: 80px; /* Extra footer space */
+    line-height: 1.7; /* Improved readability */
+}
+
+.container {
+    max-width: 1500px; /* Wider for large screens */
+    margin: 50px auto; /* Centered with ample margin */
+    background: var(--glass-bg); /* Subtle glassmorphism */
+    backdrop-filter: blur(10px); /* Glass effect */
+    border-radius: var(--border-radius);
+    padding: 40px; /* Spacious padding */
+    box-shadow: var(--box-shadow);
+    border: 1px solid rgba(59, 130, 246, 0.1); /* Subtle border */
+}
+
+h1, h2, h3 {
+    color: var(--accent-color);
+    font-weight: 700;
+    letter-spacing: -0.025em; /* Tight letter spacing */
+}
+
+h1.header-title {
+    font-size: 2.75rem; /* Larger, bolder title */
+    position: relative;
+    padding-bottom: 15px;
+    text-align: center;
+}
+
+h1.header-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px; /* Wider underline */
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-light), var(--primary-color));
+    border-radius: 4px;
+}
+
+.card {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: var(--border-radius);
+  background-color: #fff;
+  box-shadow: var(--box-shadow);
+}
+
+
+.card:hover {
+    transform: translateY(-4px); /* Subtle lift */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.card-header h2 {
+  margin-bottom: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.card-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.table {
+    color: var(--text-color);
+    background: #ffffff;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    font-size: 0.95rem;
+}
+
+.table thead th {
+  background: var(--accent-color);
+  color: #fff;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+
+.table tbody td {
+    padding: 16px 20px; /* More padding */
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    transition: var(--transition);
+}
+
+.table tbody tr:hover {
+    background-color: var(--primary-lightest); /* Subtle hover effect */
+    transform: scale(1.01); /* Slight zoom */
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f8fafc; /* Subtle striping */
+}
+
+.btn {
+  font-weight: 600;
+  padding: 12px 24px;
+  text-transform: uppercase;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.btn-primary:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+.btn-danger:hover {
+  background-color: #bb2d3b;
+}
+
+.btn-success {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+
+.btn-download {
+    margin-bottom: 35px;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+}
+
+.instructions-form {
+    margin-top: 50px; /* More spacing */
+}
+
+.instruction-input {
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.instruction-input .form-control {
+    border: 2px solid rgba(59, 130, 246, 0.2);
+    border-radius: 10px;
+    background-color: #f9fafb;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.instruction-input .form-control:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    background-color: #ffffff;
+}
+
+.alert {
+    margin-bottom: 35px;
+    border-radius: 10px;
+    border: none;
+    padding: 20px 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-success {
+    background-color: #f0fdf4;
+    color: var(--success-color);
+}
+
+.alert-danger {
+    background-color: #fef2f2;
+    color: var(--danger-color);
+}
+
+.table-responsive {
+    max-height: 550px; /* Taller table for better visibility */
+    overflow-y: auto;
+    display: block;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #ffffff;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--primary-lightest);
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--primary-light);
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+.input-group .form-control {
+  background-color: #fdfdfd;
+  border: 1px solid rgba(13, 110, 253, 0.2);
+  padding: 14px 18px;
+}
+.input-group-text {
+  background-color: var(--primary-lighter);
+  color: var(--text-color);
+}
+
+
+.welcome-message {
+  background: linear-gradient(90deg, var(--primary-lighter), var(--primary-lightest));
+  border-left: 6px solid var(--primary-light);
+  padding: 20px 28px;
+  font-size: 1.125rem;
+  color: var(--accent-color);
+}
+
+.rank-1 {
+    background-color: #fefce8 !important; /* Gold for 1st */
+    font-weight: 600;
+}
+
+.rank-2 {
+    background-color: #f3f4f6 !important; /* Silver for 2nd */
+}
+
+.rank-3 {
+    background-color: #fef2f2 !important; /* Bronze for 3rd */
+}
+
+.badge {
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 6px 14px;
+  border-radius: 30px;
+  line-height: 1;
+  min-width: 48px;
+  text-align: center;
+}
+
+
+.badge:hover {
+    transform: scale(1.1); /* Slight zoom on hover */
+}
+
+.btn-close {
+    filter: opacity(0.7);
+    transition: var(--transition);
+}
+
+.btn-close:hover {
+    filter: opacity(1);
+    transform: scale(1.1);
+}
+.btn-download,
+.btn-success,
+.btn-danger,
+.btn-outline-primary {
+  font-size: 0.9rem;
+  padding: 10px 20px;
+}
+.btn i {
+  margin-right: 6px;
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 30px;
+        margin: 30px 15px;
+    }
+
+    h1.header-title {
+        font-size: 2.25rem;
+    }
+
+    .card-header {
+        padding: 16px 20px;
+        font-size: 1.15rem;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+
+    .table-responsive {
+        max-height: 450px;
+    }
+
+    .welcome-message {
+        font-size: 1.05rem;
+        padding: 20px 25px;
+    }
+
+    .btn-download {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    h1.header-title {
+        font-size: 1.75rem;
+    }
+
+    .table thead th {
+        font-size: 0.85rem;
+        padding: 12px 15px;
+    }
+
+    .table tbody td {
+        font-size: 0.85rem;
+        padding: 12px 15px;
+    }
+
+    .instruction-input .form-control {
+        font-size: 0.9rem;
+        padding: 12px 15px;
+    }
+
+    .card-header {
+        font-size: 1rem;
+    }
+}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">📊 Admin Dashboard</h1>
-        <h3 class="text-center mb-4">Welcome, {{ fullname }}</h3>
+        <div class="text-center mb-4">
+            <h1 class="header-title">📊 Admin Dashboard</h1>
+            <div class="welcome-message">
+                <h4 class="mb-0">Welcome back, <strong>{{ fullname }}</strong></h4>
+            </div>
+        </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }}" role="alert">
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
         <!-- Leaderboard Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2>🏆 Leaderboard</h2>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Leaderboard</h2>
+                <a href="{{ url_for('admin_dashboard', download='excel') }}" class="btn btn-primary btn-download">
+                    <i class="fas fa-file-excel me-1"></i> Export to Excel
+                </a>
             </div>
             <div class="card-body">
-                <a href="{{ url_for('admin_dashboard', download='excel') }}" class="btn btn-primary btn-download">
-                    <i class="fas fa-download"></i> Download as Excel
-                </a>
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>Rank</th>
@@ -177,15 +424,27 @@
                         </thead>
                         <tbody>
                             {% for entry in leaderboard %}
-                                <tr>
-                                    <td>{{ entry.rank }}</td>
+                                <tr class="rank-{{ entry.rank if entry.rank <= 3 else '' }}">
+                                    <td>
+                                        {% if entry.rank == 1 %}
+                                            <span class="badge bg-warning text-dark">🥇 {{ entry.rank }}</span>
+                                        {% elif entry.rank == 2 %}
+                                            <span class="badge bg-secondary">🥈 {{ entry.rank }}</span>
+                                        {% elif entry.rank == 3 %}
+                                            <span class="badge bg-danger">🥉 {{ entry.rank }}</span>
+                                        {% else %}
+                                            {{ entry.rank }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ entry.name }}</td>
-                                    <td>{{ entry.score }}</td>
+                                    <td>
+                                        <span class="badge bg-success rounded-pill">{{ entry.score }}</span>
+                                    </td>
                                 </tr>
                             {% endfor %}
                             {% if not leaderboard %}
                                 <tr>
-                                    <td colspan="3" class="text-center">No leaderboard data available</td>
+                                    <td colspan="3" class="text-center py-4 text-muted">No leaderboard data available</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -197,29 +456,64 @@
         <!-- Instructions Section -->
         <div class="card">
             <div class="card-header">
-                <h2>📝 Edit Instructions</h2>
+                <h2 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Instructions</h2>
             </div>
             <div class="card-body">
                 <form method="POST" class="instructions-form">
                     {% for instruction in instructions %}
-                        <div class="input-group instruction-input">
-                            <input type="text" class="form-control" name="instructions" value="{{ instruction }}">
+                        <div class="instruction-input">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">{{ loop.index }}.</span>
+                                <input type="text" class="form-control" name="instructions" value="{{ instruction }}">
+                                <button class="btn btn-outline-danger" type="button" onclick="this.parentNode.parentNode.remove()">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     {% endfor %}
-                    <div class="input-group instruction-input">
-                        <input type="text" class="form-control" name="instructions" placeholder="Add new instruction">
+                    <div class="instruction-input">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-plus"></i></span>
+                            <input type="text" class="form-control" name="instructions" placeholder="Add new instruction">
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Instructions</button>
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-primary" onclick="addNewInstructionField()">
+                            <i class="fas fa-plus-circle me-1"></i> Add Another Field
+                        </button>
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="fas fa-save me-1"></i> Save Instructions
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
 
         <!-- Logout Button -->
-        <div class="text-center mt-5">
-            <a href="{{ url_for('logout') }}" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <div class="text-center mt-4">
+            <a href="{{ url_for('logout') }}" class="btn btn-danger px-4">
+                <i class="fas fa-sign-out-alt me-1"></i> Logout
+            </a>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function addNewInstructionField() {
+            const container = document.querySelector('.instructions-form');
+            const newField = document.createElement('div');
+            newField.className = 'instruction-input mt-2';
+            newField.innerHTML = `
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-plus"></i></span>
+                    <input type="text" class="form-control" name="instructions" placeholder="Add new instruction">
+                    <button class="btn btn-outline-danger" type="button" onclick="this.parentNode.parentNode.remove()">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.insertBefore(newField, container.lastElementChild);
+        }
+    </script>
 </body>
 </html>
