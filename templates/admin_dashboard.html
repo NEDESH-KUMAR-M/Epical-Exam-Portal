@@ -8,391 +8,470 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-  --primary-color: #0d6efd;
-  --primary-light: #3e8cf4;
-  --primary-lighter: #e7f1ff;
-  --primary-lightest: #f6faff;
-  --accent-color: #1b1f3b;
-  --danger-color: #dc3545;
-  --text-color: #212529;
-  --text-light: #6c757d;
-  --border-radius: 12px;
-  --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --transition: all 0.25s ease-in-out;
-}
+            --primary-color: #0d6efd;
+            --primary-light: #3e8cf4;
+            --primary-lighter: #e7f1ff;
+            --primary-lightest: #f6faff;
+            --accent-color: #1b1f3b;
+            --danger-color: #dc3545;
+            --text-color: #212529;
+            --text-light: #6c757d;
+            --border-radius: 12px;
+            --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            --transition: all 0.25s ease-in-out;
+        }
 
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
 
-body {
-    background: linear-gradient(160deg, #f9fafb, #e0f2fe); /* Modern gradient */
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* Premium font stack */
-    color: var(--text-color);
-    min-height: 100vh;
-    padding-bottom: 80px; /* Extra footer space */
-    line-height: 1.7; /* Improved readability */
-}
+        body {
+            background: linear-gradient(160deg, #f9fafb, #e0f2fe);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-color);
+            line-height: 1.7;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* Needed for absolute positioning of alerts */
+        }
 
-.container {
-    max-width: 1500px; /* Wider for large screens */
-    margin: 50px auto; /* Centered with ample margin */
-    background: var(--glass-bg); /* Subtle glassmorphism */
-    backdrop-filter: blur(10px); /* Glass effect */
-    border-radius: var(--border-radius);
-    padding: 40px; /* Spacious padding */
-    box-shadow: var(--box-shadow);
-    border: 1px solid rgba(59, 130, 246, 0.1); /* Subtle border */
-}
+        .container-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 15px;
+        }
 
-h1, h2, h3 {
-    color: var(--accent-color);
-    font-weight: 700;
-    letter-spacing: -0.025em; /* Tight letter spacing */
-}
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative; /* For absolute positioning of children */
+        }
 
-h1.header-title {
-    font-size: 2.75rem; /* Larger, bolder title */
-    position: relative;
-    padding-bottom: 15px;
-    text-align: center;
-}
+        .dashboard-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-h1.header-title::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80px; /* Wider underline */
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary-light), var(--primary-color));
-    border-radius: 4px;
-}
+        /* Flash messages overlay */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            z-index: 1000;
+            pointer-events: none; /* Allow clicks to pass through to elements below */
+        }
 
-.card {
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: var(--border-radius);
-  background-color: #fff;
-  box-shadow: var(--box-shadow);
-}
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 15px 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            pointer-events: auto; /* Enable clicks on the alert itself */
+            animation: slideIn 0.3s ease-out forwards;
+        }
 
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.card:hover {
-    transform: translateY(-4px); /* Subtle lift */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-}
+        /* Rest of your existing styles... */
+        h1, h2, h3 {
+            color: var(--accent-color);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
 
-.card-header {
-  justify-content: space-between;
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.card-header h2 {
-  margin-bottom: 0;
-  font-size: 1.35rem;
-  font-weight: 600;
-}
+        h1.header-title {
+            font-size: clamp(1.75rem, 3vw, 2.75rem);
+            position: relative;
+            padding-bottom: 15px;
+            text-align: center;
+            margin: 0.5rem 0;
+        }
 
-.card-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.3);
-}
+        h1.header-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-light), var(--primary-color));
+            border-radius: 4px;
+        }
 
-.table {
-    color: var(--text-color);
-    background: #ffffff;
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    font-size: 0.95rem;
-}
+        .card {
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: var(--border-radius);
+            background-color: #fff;
+            box-shadow: var(--box-shadow);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-.table thead th {
-  background: var(--accent-color);
-  color: #fff;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
+        .card-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
+        .card-header {
+            justify-content: space-between;
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card-header h2 {
+            margin-bottom: 0;
+            font-size: 1.35rem;
+            font-weight: 600;
+        }
 
-.table tbody td {
-    padding: 16px 20px; /* More padding */
-    vertical-align: middle;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    transition: var(--transition);
-}
+        .table {
+            color: var(--text-color);
+            background: #ffffff;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            font-size: 0.95rem;
+            margin-bottom: 0;
+        }
 
-.table tbody tr:hover {
-    background-color: var(--primary-lightest); /* Subtle hover effect */
-    transform: scale(1.01); /* Slight zoom */
-}
+        .table thead th {
+            background: var(--accent-color);
+            color: #fff;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
 
-.table-striped tbody tr:nth-of-type(odd) {
-    background-color: #f8fafc; /* Subtle striping */
-}
+        .table tbody td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            transition: var(--transition);
+        }
 
-.btn {
-  font-weight: 600;
-  padding: 12px 24px;
-  text-transform: uppercase;
-  border-radius: 8px;
-  transition: var(--transition);
-}
+        .table tbody tr:hover {
+            background-color: var(--primary-lightest);
+        }
 
-.btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-.btn-primary:hover {
-  background-color: var(--primary-light);
-  transform: translateY(-2px);
-}
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f8fafc;
+        }
 
-.btn-danger:hover {
-  background-color: #bb2d3b;
-}
+        .btn {
+            font-weight: 600;
+            padding: 10px 20px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
 
-.btn-success {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
 
-.btn-primary:hover, .btn-success:hover {
-    background-color: var(--primary-light);
-    border-color: var(--primary-light);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-}
+        .btn-danger:hover {
+            background-color: #bb2d3b;
+        }
 
-.btn-danger {
-    background-color: var(--danger-color);
-    border-color: var(--danger-color);
-}
+        .btn-success {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
 
+        .btn-primary:hover, .btn-success:hover {
+            background-color: var(--primary-light);
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
 
-.btn-download {
-    margin-bottom: 35px;
-    font-size: 0.9rem;
-    padding: 10px 20px;
-}
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
 
-.instructions-form {
-    margin-top: 50px; /* More spacing */
-}
+        .btn-download {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
 
-.instruction-input {
-    margin-bottom: 30px;
-    position: relative;
-}
+        .instructions-form {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-.instruction-input .form-control {
-    border: 2px solid rgba(59, 130, 246, 0.2);
-    border-radius: 10px;
-    background-color: #f9fafb;
-    padding: 14px 20px;
-    font-size: 0.95rem;
-    transition: var(--transition);
-}
+        .instructions-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
 
-.instruction-input .form-control:focus {
-    border-color: var(--primary-light);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-    background-color: #ffffff;
-}
+        .instruction-input {
+            margin-bottom: 15px;
+        }
 
-.alert {
-    margin-bottom: 35px;
-    border-radius: 10px;
-    border: none;
-    padding: 20px 25px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+        .instruction-input .form-control {
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            background-color: #f9fafb;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
 
-.alert-success {
-    background-color: #f0fdf4;
-    color: var(--success-color);
-}
+        .instruction-input .form-control:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            background-color: #ffffff;
+        }
 
-.alert-danger {
-    background-color: #fef2f2;
-    color: var(--danger-color);
-}
+        .table-responsive {
+            flex: 1;
+            overflow: auto;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: #ffffff;
+        }
 
-.table-responsive {
-    max-height: 550px; /* Taller table for better visibility */
-    overflow-y: auto;
-    display: block;
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background: #ffffff;
-}
+        .table-responsive::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
 
-.table-responsive::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-}
+        .table-responsive::-webkit-scrollbar-track {
+            background: var(--primary-lightest);
+            border-radius: 6px;
+        }
 
-.table-responsive::-webkit-scrollbar-track {
-    background: var(--primary-lightest);
-    border-radius: 6px;
-}
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 6px;
+        }
 
-.table-responsive::-webkit-scrollbar-thumb {
-    background: var(--primary-light);
-    border-radius: 6px;
-}
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
 
-.table-responsive::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-color);
-}
+        .input-group .form-control {
+            background-color: #fdfdfd;
+            border: 1px solid rgba(13, 110, 253, 0.2);
+            padding: 12px 16px;
+        }
+        .input-group-text {
+            background-color: var(--primary-lighter);
+            color: var(--text-color);
+        }
 
-.input-group .form-control {
-  background-color: #fdfdfd;
-  border: 1px solid rgba(13, 110, 253, 0.2);
-  padding: 14px 18px;
-}
-.input-group-text {
-  background-color: var(--primary-lighter);
-  color: var(--text-color);
-}
+        .rank-1 {
+            background-color: #fefce8 !important;
+            font-weight: 600;
+        }
 
+        .rank-2 {
+            background-color: #f3f4f6 !important;
+        }
 
-.welcome-message {
-  background: linear-gradient(90deg, var(--primary-lighter), var(--primary-lightest));
-  border-left: 6px solid var(--primary-light);
-  padding: 20px 28px;
-  font-size: 1.125rem;
-  color: var(--accent-color);
-}
+        .rank-3 {
+            background-color: #fef2f2 !important;
+        }
 
-.rank-1 {
-    background-color: #fefce8 !important; /* Gold for 1st */
-    font-weight: 600;
-}
+        .badge {
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 6px 12px;
+            border-radius: 30px;
+            line-height: 1;
+            min-width: 40px;
+            text-align: center;
+        }
 
-.rank-2 {
-    background-color: #f3f4f6 !important; /* Silver for 2nd */
-}
+        /* Tab buttons */
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
 
-.rank-3 {
-    background-color: #fef2f2 !important; /* Bronze for 3rd */
-}
+        .tab-button {
+            padding: 10px 20px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
 
-.badge {
-  font-weight: 500;
-  font-size: 0.95rem;
-  padding: 6px 14px;
-  border-radius: 30px;
-  line-height: 1;
-  min-width: 48px;
-  text-align: center;
-}
+        .tab-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
 
+        .tab-button:not(.active) {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
 
-.badge:hover {
-    transform: scale(1.1); /* Slight zoom on hover */
-}
+        .tab-button:not(.active):hover {
+            background-color: var(--primary-lightest);
+        }
 
-.btn-close {
-    filter: opacity(0.7);
-    transition: var(--transition);
-}
+        .tab-content {
+            flex: 1;
+            display: none;
+            overflow: hidden;
+        }
 
-.btn-close:hover {
-    filter: opacity(1);
-    transform: scale(1.1);
-}
-.btn-download,
-.btn-success,
-.btn-danger,
-.btn-outline-primary {
-  font-size: 0.9rem;
-  padding: 10px 20px;
-}
-.btn i {
-  margin-right: 6px;
-}
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
 
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .container {
-        padding: 30px;
-        margin: 30px 15px;
-    }
+        .logout-container {
+            margin-top: 15px;
+            text-align: center;
+        }
 
-    h1.header-title {
-        font-size: 2.25rem;
-    }
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .table tbody td {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            
+            .instruction-input .form-control {
+                padding: 10px 14px;
+            }
+        }
 
-    .card-header {
-        padding: 16px 20px;
-        font-size: 1.15rem;
-    }
+        @media (max-width: 768px) {
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .btn-download {
+                width: 100%;
+                margin-top: 10px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .form-actions button {
+                width: 100%;
+            }
 
-    .btn {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-    }
+            .flash-messages {
+                width: 95%;
+                top: 10px;
+            }
+        }
 
-    .table-responsive {
-        max-height: 450px;
-    }
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1.header-title {
+                font-size: 1.5rem;
+            }
+            
+            .table thead th {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+            
+            .table tbody td {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+            
+            .tab-buttons {
+                gap: 5px;
+            }
+            
+            .tab-button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
 
-    .welcome-message {
-        font-size: 1.05rem;
-        padding: 20px 25px;
-    }
-
-    .btn-download {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 576px) {
-    h1.header-title {
-        font-size: 1.75rem;
-    }
-
-    .table thead th {
-        font-size: 0.85rem;
-        padding: 12px 15px;
-    }
-
-    .table tbody td {
-        font-size: 0.85rem;
-        padding: 12px 15px;
-    }
-
-    .instruction-input .form-control {
-        font-size: 0.9rem;
-        padding: 12px 15px;
-    }
-
-    .card-header {
-        font-size: 1rem;
-    }
-}
+            .alert {
+                padding: 12px 15px;
+                font-size: 0.85rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="text-center mb-4">
-            <h1 class="header-title"><img src="{{ url_for('static', filename='image/logo.png') }} " width="50px" height="50px"> Admin Dashboard</h1>
-            <div class="welcome-message">
-                <h4 class="mb-0">Welcome back, <strong>{{ fullname }}</strong></h4>
-            </div>
-        </div>
-        
+    <!-- Flash Messages Overlay -->
+    <div class="flash-messages">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -403,104 +482,130 @@ h1.header-title::after {
                 {% endfor %}
             {% endif %}
         {% endwith %}
+    </div>
 
-        <!-- Leaderboard Section -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Leaderboard</h2>
-                <a href="{{ url_for('admin_dashboard', download='excel') }}" class="btn btn-primary btn-download">
-                    <i class="fas fa-file-excel me-1"></i> Export to Excel
-                </a>
+    <div class="container-wrapper">
+        <div class="container">
+            <div class="text-center" style="display: none;">
+                <h1 class="header-title"><img src="{{ url_for('static', filename='image/logo.png') }}" width="50px" height="50px"> Admin Dashboard</h1>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Name</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for entry in leaderboard %}
-                                <tr class="rank-{{ entry.rank if entry.rank <= 3 else '' }}">
-                                    <td>
-                                        {% if entry.rank == 1 %}
-                                            <span class="badge bg-warning text-dark">🥇 {{ entry.rank }}</span>
-                                        {% elif entry.rank == 2 %}
-                                            <span class="badge bg-secondary">🥈 {{ entry.rank }}</span>
-                                        {% elif entry.rank == 3 %}
-                                            <span class="badge bg-danger">🥉 {{ entry.rank }}</span>
-                                        {% else %}
-                                            {{ entry.rank }}
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ entry.name }}</td>
-                                    <td>
-                                        <span class="badge bg-success rounded-pill">{{ entry.score }}</span>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            {% if not leaderboard %}
-                                <tr>
-                                    <td colspan="3" class="text-center py-4 text-muted">No leaderboard data available</td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
+
+            <div class="dashboard-content">
+                <!-- Tab Buttons -->
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('leaderboard-tab')">
+                        <i class="fas fa-trophy me-2"></i>Leaderboard
+                    </button>
+                    <button class="tab-button" onclick="showTab('instructions-tab')">
+                        <i class="fas fa-edit me-2"></i>Instructions
+                    </button>
                 </div>
-            </div>
-        </div>
 
-        <!-- Instructions Section -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Instructions</h2>
-            </div>
-            <div class="card-body">
-                <form method="POST" class="instructions-form">
-                    {% for instruction in instructions %}
-                        <div class="instruction-input">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light">{{ loop.index }}.</span>
-                                <input type="text" class="form-control" name="instructions" value="{{ instruction }}">
-                                <button class="btn btn-outline-danger" type="button" onclick="this.parentNode.parentNode.remove()">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                <!-- Leaderboard Section -->
+                <div id="leaderboard-tab" class="tab-content active">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Leaderboard</h2>
+                            <a href="{{ url_for('admin_dashboard', download='excel') }}" class="btn btn-primary btn-download">
+                                <i class="fas fa-file-excel me-1"></i> Export to Excel
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Name</th>
+                                            <th>Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entry in leaderboard %}
+                                            <tr class="rank-{{ entry.rank if entry.rank <= 3 else '' }}">
+                                                <td>
+                                                    {% if entry.rank == 1 %}
+                                                        <span class="badge bg-warning text-dark">🥇 {{ entry.rank }}</span>
+                                                    {% elif entry.rank == 2 %}
+                                                        <span class="badge bg-secondary">🥈 {{ entry.rank }}</span>
+                                                    {% elif entry.rank == 3 %}
+                                                        <span class="badge bg-danger">🥉 {{ entry.rank }}</span>
+                                                    {% else %}
+                                                        {{ entry.rank }}
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ entry.name }}</td>
+                                                <td>
+                                                    <span class="badge bg-success rounded-pill">{{ entry.score }}</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        {% if not leaderboard %}
+                                            <tr>
+                                                <td colspan="3" class="text-center py-4 text-muted">No leaderboard data available</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    {% endfor %}
-                    <div class="instruction-input">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="fas fa-plus"></i></span>
-                            <input type="text" class="form-control" name="instructions" placeholder="Add new instruction">
+                    </div>
+                </div>
+
+                <!-- Instructions Section -->
+                <div id="instructions-tab" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Instructions</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" class="instructions-form">
+                                <div class="instructions-container">
+                                    {% for instruction in instructions %}
+                                        <div class="instruction-input">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light">{{ loop.index }}.</span>
+                                                <input type="text" class="form-control" name="instructions" value="{{ instruction }}">
+                                                <button class="btn btn-outline-danger" type="button" onclick="this.parentNode.parentNode.remove()">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                    <div class="instruction-input">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light"><i class="fas fa-plus"></i></span>
+                                            <input type="text" class="form-control" name="instructions" placeholder="Add new instruction">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-outline-primary" onclick="addNewInstructionField()">
+                                        <i class="fas fa-plus-circle me-1"></i> Add Another Field
+                                    </button>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-1"></i> Save Instructions
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-between mt-4">
-                        <button type="button" class="btn btn-outline-primary" onclick="addNewInstructionField()">
-                            <i class="fas fa-plus-circle me-1"></i> Add Another Field
-                        </button>
-                        <button type="submit" class="btn btn-success px-4">
-                            <i class="fas fa-save me-1"></i> Save Instructions
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
 
-        <!-- Logout Button -->
-        <div class="text-center mt-4">
-            <a href="{{ url_for('logout') }}" class="btn btn-danger px-4">
-                <i class="fas fa-sign-out-alt me-1"></i> Logout
-            </a>
+            <!-- Logout Button -->
+            <div class="logout-container">
+                <a href="{{ url_for('logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </a>
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function addNewInstructionField() {
-            const container = document.querySelector('.instructions-form');
+            const container = document.querySelector('.instructions-container');
             const newField = document.createElement('div');
             newField.className = 'instruction-input mt-2';
             newField.innerHTML = `
@@ -512,8 +617,35 @@ h1.header-title::after {
                     </button>
                 </div>
             `;
-            container.insertBefore(newField, container.lastElementChild);
+            container.appendChild(newField);
         }
+        
+        function showTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Update button states
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
     </script>
 </body>
 </html>
