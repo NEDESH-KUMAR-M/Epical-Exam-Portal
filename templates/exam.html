@@ -590,27 +590,446 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="cameraConsentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Camera Access Required</h5>
+            </div>
+            <div class="modal-body">
+                <p>This exam requires camera access for proctoring purposes. Please allow camera access to continue.</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="consentCheckbox">
+                    <label class="form-check-label" for="consentCheckbox">
+                        I consent to being recorded during this exam
+                    </label>
+                </div>
+                <div id="cameraPreview" class="mt-3 text-center" style="display: none;">
+                    <video id="cameraFeed" width="320" height="240" autoplay muted></video>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="startCameraBtn" disabled>Start Camera</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script>
-   const blockKeys = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("Blocked key:", e.key);
-      return false;
+let mediaStream = null;
+let recordedChunks = [];
+let mediaRecorder = null;
+let isCameraStopped = false;
+
+    function setupCameraConsent() {
+        const consentModal = new bootstrap.Modal(document.getElementById('cameraConsentModal'));
+        const consentCheckbox = document.getElementById('consentCheckbox');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        
+        consentModal.show();
+        
+        consentCheckbox.addEventListener('change', function() {
+            startCameraBtn.disabled = !this.checked;
+        });
+        
+        startCameraBtn.addEventListener('click', async function() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: false 
+                });
+                
+                const cameraFeed = document.getElementById('cameraFeed');
+                cameraFeed.srcObject = mediaStream;
+                document.getElementById('cameraPreview').style.display = 'block';
+                
+                setupRecording(mediaStream);
+                
+                consentModal.hide();
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Could not access camera. Please ensure you have granted permissions.');
+            }
+        });
+    }
+
+    function setupRecording(stream) {
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.start(1000);
+        
+        setInterval(saveRecording, 30000);
+    }
+
+    function saveRecording() {
+        if (recordedChunks.length === 0) return;
+        
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        recordedChunks = [];
+        
+        const formData = new FormData();
+        formData.append('video', blob, `recording_${Date.now()}.webm`);
+        formData.append('test_id', testId);
+        formData.append('email', "{{ session.email }}");
+        
+        fetch('/save_recording', {
+            method: 'POST',
+            body: formData
+        }).catch(error => {
+            console.error('Error saving recording:', error);
+        });
+    }
+// New flag to track camera state
+
+function stopVideoFunctionality() {
+    if (isCameraStopped) return; // Prevent redundant calls
+
+    try {
+        // Stop MediaRecorder if active
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            mediaRecorder = null;
+        }
+
+        // Stop all media tracks
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+
+        // Clear recorded chunks
+        recordedChunks = [];
+
+        // Hide camera preview
+        const cameraPreview = document.getElementById('cameraPreview');
+        if (cameraPreview) {
+            cameraPreview.style.display = 'none';
+        }
+
+        const cameraFeed = document.getElementById('cameraFeed');
+        if (cameraFeed) {
+            cameraFeed.srcObject = null;
+        }
+
+        isCameraStopped = true; // Mark camera as stopped
+        console.log('Camera and recording stopped successfully');
+    } catch (error) {
+        console.error('Error stopping video functionality:', error);
+    }
+}
+
+async function performSubmission() {
+    clearInterval(timerInterval);
+    isMonitoringViolations = false;
+    exitFullScreen();
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('submitConfirmationModal'));
+    if (modal) {
+        modal.hide();
+    }
+
+    stopVideoFunctionality(); // Stop camera immediately after modal hide
+
+    const timeElapsed = Date.now() - startTime;
+    const minutes = Math.floor(timeElapsed / 60000);
+    const seconds = Math.floor((timeElapsed % 60000) / 1000);
+    const timeTaken = `${minutes}m ${seconds}s`;
+
+    const answers = {};
+    questions.forEach(q => {
+        if (q.selectedAnswer !== null) {
+            answers[q.id] = Array.isArray(q.selectedAnswer)
+                ? q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',')
+                : String.fromCharCode(65 + q.selectedAnswer);
+        }
+    });
+
+    try {
+        document.querySelector(".container").innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Submitting your exam...</p>
+                </div>
+            </div>
+        `;
+
+        const response = await fetch('/submit_exam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                test_id: testId,
+                email: "{{ session.email }}",
+                answers: answers,
+                time_taken: timeTaken
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            isSubmitted = true;
+            clearState();
+            // Camera already stopped above
+
+            const resultHtml = `
+                <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
+                                <p class="text-muted">Your assessment has been recorded.</p>
+                            </div>
+                            <div class="border rounded-3 overflow-hidden mb-4">
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Submission Time</td>
+                                            <td class="fw-semibold py-3 pe-4">${new Date().toLocaleString('en-US', {
+                                                weekday: 'short',
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Time Taken</td>
+                                            <td class="fw-semibold py-3 pe-4">${timeTaken}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Total Questions</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.length}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Answered</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer !== null).length}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-4">
+                                <p class="small text-muted mb-2">${result.message || 'Results will be announced shortly...'}</p>
+                                <p class="small text-muted">Await further communication from the examination committee.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    .card { border-radius: 12px; }
+                    table td { white-space: nowrap; }
+                </style>
+            `;
+            document.querySelector(".container").innerHTML = resultHtml;
+        } else {
+            alert(`Error submitting exam: ${result.error}`);
+        }
+    } catch (error) {
+        console.error("Submission error:", error);
+        alert("Error submitting exam. Please try again.");
+    }
+}
+
+async function performAutoSubmission() {
+    clearInterval(timerInterval);
+    isMonitoringViolations = false;
+    exitFullScreen();
+
+    stopVideoFunctionality(); // Stop camera immediately
+
+    const timeElapsed = Date.now() - startTime;
+    const minutes = Math.floor(timeElapsed / 60000);
+    const seconds = Math.floor((timeElapsed % 60000) / 1000);
+    const timeTaken = `${minutes}m ${seconds}s`;
+
+    const answers = {};
+    questions.forEach(q => {
+        if (q.selectedAnswer !== null) {
+            answers[q.id] = Array.isArray(q.selectedAnswer)
+                ? q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',')
+                : String.fromCharCode(65 + q.selectedAnswer);
+        }
+    });
+
+    try {
+        document.querySelector(".container").innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Time has ended. Submitting your exam automatically...</p>
+                </div>
+            </div>
+        `;
+
+        const response = await fetch('/submit_exam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                test_id: testId,
+                email: "{{ session.email }}",
+                answers: answers,
+                time_taken: timeTaken,
+                auto_submitted: true
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            isSubmitted = true;
+            clearState();
+            // Camera already stopped above
+
+            const resultHtml = `
+                <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
+                                <p class="text-muted">Your assessment has been recorded.</p>
+                            </div>
+                            <div class="border rounded-3 overflow-hidden mb-4">
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Submission Time</td>
+                                            <td class="fw-semibold py-3 pe-4">${new Date().toLocaleString('en-US', {
+                                                weekday: 'short',
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Time Taken</td>
+                                            <td class="fw-semibold py-3 pe-4">${timeTaken}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Total Questions</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.length}</td>
+                                        </tr>
+                                        <tr class="border-bottom">
+                                            <td class="text-muted py-3 ps-4">Answered</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer !== null).length}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-3 ps-4">Not Answered</td>
+                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer === null).length}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-4">
+                                <p class="small text-muted mb-2">Results will be announced shortly...</p>
+                                <p class="small text-muted">Await further communication from the examination committee.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    .card { border-radius: 12px; }
+                    table td { white-space: nowrap; }
+                </style>
+            `;
+            document.querySelector(".container").innerHTML = resultHtml;
+        } else {
+            alert(`Error submitting exam: ${result.error}`);
+        }
+    } catch (error) {
+        console.error("Auto-submission error:", error);
+        alert("Error submitting exam automatically. Please contact support.");
+    }
+}
+
+function logViolation(violationType) {
+    if (!isMonitoringViolations) return;
+
+    violationCount++;
+    violations.push({
+        type: violationType,
+        timestamp: new Date().toISOString()
+    });
+    saveState();
+
+    const violationMessage = violationCount < maxViolations
+        ? `Warning: ${violationType} detected! Violation ${violationCount} of ${maxViolations}.`
+        : `Exam Terminated: Maximum violations (${maxViolations}) reached due to ${violationType}.`;
+
+    const violationModal = new bootstrap.Modal(document.getElementById('violationModal'));
+    document.getElementById('violationMessage').textContent = violationMessage;
+    document.getElementById('violationDetail').textContent = violationCount < maxViolations
+        ? 'Please adhere to exam rules to avoid termination.'
+        : 'Your exam has been terminated due to excessive violations.';
+    violationModal.show();
+
+    if (violationCount >= maxViolations) {
+        isMonitoringViolations = false;
+        exitFullScreen();
+        // Stop camera after modal dismissal
+        document.querySelector('#violationModal .btn-primary').addEventListener('click', async () => {
+            stopVideoFunctionality();
+            await performAutoSubmission();
+        }, { once: true });
+    }
+}
+
+// Optimize beforeunload to avoid redundant camera stop
+window.addEventListener('beforeunload', () => {
+    if (!isSubmitted && !isCameraStopped) {
+        stopVideoFunctionality();
+    }
+});
+    document.addEventListener('DOMContentLoaded', () => {
+        setupCameraConsent();
+        
+        window.addEventListener('beforeunload', () => {
+            stopVideoFunctionality();
+        });
+    });
+
+    const blockKeys = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Blocked key:", e.key);
+        return false;
     };
 
     document.addEventListener("keydown", blockKeys);
     document.addEventListener("keyup", blockKeys);
 
-    // Block context menu (right-click)
     document.addEventListener("contextmenu", function (e) {
-      e.preventDefault();
+        e.preventDefault();
     });
 
-    // Optional: Warn if user switches tab or window
-
-
-    // Quiz data and state
     let questions = [];
     let currentQuestion = 0;
     let testId = "01";
@@ -624,7 +1043,6 @@
     let isMonitoringViolations = true;
     const STORAGE_KEY = `exam_state_${testId}_${"{{ session.email }}"}`;
 
-    // DOM elements
     const questionText = document.getElementById('questionText');
     const questionHeader = document.getElementById('questionHeader');
     const optionsContainer = document.getElementById('optionsContainer');
@@ -634,7 +1052,6 @@
     const questionPanel = document.getElementById('questionPanel');
     const navigationPanel = document.getElementById('navigationPanel');
 
-    // Full-screen management
     function enterFullScreen() {
         const elem = document.documentElement;
         const fullscreenPromise = elem.requestFullscreen ? elem.requestFullscreen() :
@@ -668,7 +1085,6 @@
         }
     }
 
-    // State management
     function saveState() {
         if (isSubmitted) return;
         const state = {
@@ -802,6 +1218,8 @@
             if (result.success) {
                 isSubmitted = true;
                 clearState();
+                stopVideoFunctionality(); // Stop video recording and camera
+                
                 const resultHtml = `
                 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
                     <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
@@ -953,6 +1371,8 @@
             if (result.success) {
                 isSubmitted = true;
                 clearState();
+                stopVideoFunctionality(); // Stop video recording and camera
+                
                 const resultHtml = `
                 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
                     <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
@@ -1105,7 +1525,6 @@
                 throw new Error('No valid questions found after processing');
             }
             
-            // Load saved state after fetching questions
             const stateLoaded = loadState();
             if (!stateLoaded) {
                 startTime = Date.now();
@@ -1292,7 +1711,6 @@
         unattemptedCount.textContent = `${unattempted}/${totalQuestions}`;
     }
 
-    // Event listeners
     document.getElementById('prevBtn').addEventListener('click', previousQuestion);
     document.getElementById('nextBtn').addEventListener('click', nextQuestion);
     document.getElementById('reviewBtn').addEventListener('click', toggleReview);
@@ -1306,7 +1724,6 @@
         }
     });
 
-    // Initialize
     document.addEventListener('DOMContentLoaded', () => {
         enterFullScreen();
         fetchQuestions();
