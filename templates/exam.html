@@ -52,11 +52,6 @@
             color: #e74c3c;
         }
 
-        .test-info {
-            font-size: 14px;
-            color: #666;
-        }
-
         .main-content {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -216,6 +211,7 @@
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
         .navigation-panel {
@@ -498,7 +494,7 @@
         </div>
     </div>
 
-    <!-- Custom Submit Confirmation Modal -->
+    <!-- Submit Confirmation Modal -->
     <div class="modal fade" id="submitConfirmationModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -591,10 +587,12 @@
     let timerInterval;
     let startTime = Date.now();
     let violationCount = 0;
+    let violations = [];
     const maxViolations = 3;
     let isSubmitted = false;
     let isMonitoringViolations = true;
     const STORAGE_KEY = `exam_state_${testId}_${"{{ session.email }}"}`;
+    const SUBMISSION_KEY = `exam_submitted_${testId}_${"{{ session.email }}"}`;
 
     // DOM elements
     const questionText = document.getElementById('questionText');
@@ -605,6 +603,83 @@
     const timerEl = document.getElementById('timer');
     const questionPanel = document.getElementById('questionPanel');
     const navigationPanel = document.getElementById('navigationPanel');
+    
+
+    // Function to show submission confirmation
+    function showSubmissionConfirmation(submissionData = {}) {
+        const timeTaken = submissionData.timeTaken || 'N/A';
+        const answeredCount = submissionData.answeredCount || questions.filter(q => q.selectedAnswer !== null).length;
+        const totalQuestions = submissionData.totalQuestions || questions.length;
+
+        const resultHtml = `
+            <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+                <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+                                </svg>
+                            </div>
+                            <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
+                            <p class="text-muted">Your assessment has been recorded.</p>
+                        </div>
+
+                        <div class="border rounded-3 overflow-hidden mb-4">
+                            <table class="table table-borderless mb-0">
+                                <tbody>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-3 ps-4">Submission Time</td>
+                                        <td class="fw-semibold py-3 pe-4">${new Date().toLocaleString('en-US', { 
+                                            weekday: 'short', 
+                                            year: 'numeric', 
+                                            month: 'short', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-3 ps-4">Time Taken</td>
+                                        <td class="fw-semibold py-3 pe-4">${timeTaken}</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-3 ps-4">Total Questions</td>
+                                        <td class="fw-semibold py-3 pe-4">${totalQuestions}</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-3 ps-4">Answered</td>
+                                        <td class="fw-semibold py-3 pe-4">${answeredCount}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted py-3 ps-4">Not Answered</td>
+                                        <td class="fw-semibold py-3 pe-4">${totalQuestions - answeredCount}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <p class="small text-muted mb-2">Results will be announced shortly...</p>
+                            <p class="small text-muted">Await further communication from the examination committee.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .card {
+                    border-radius: 12px;
+                }
+                table td {
+                    white-space: nowrap;
+                }
+            </style>
+        `;
+
+        document.querySelector(".container").innerHTML = resultHtml;
+        lockExamInterface();
+    }
 
     // Full-screen management
     function enterFullScreen() {
@@ -623,8 +698,8 @@
 
     function handleFullScreenChange() {
         if (!document.fullscreenElement && !isSubmitted && isMonitoringViolations) {
-            enterFullScreen();
             logViolation('Attempted to exit full-screen');
+            setTimeout(enterFullScreen, 100); // Re-enter full-screen immediately
         }
     }
 
@@ -640,101 +715,105 @@
         }
     }
 
+    // Lock exam interface to prevent interaction
+    function lockExamInterface() {
+        document.getElementById('prevBtn').disabled = true;
+        document.getElementById('nextBtn').disabled = true;
+        document.getElementById('reviewBtn').disabled = true;
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').style.display = 'none'; 
+
+        const questionButtons = document.querySelectorAll('.question-btn');
+        questionButtons.forEach(button => {
+            button.disabled = true;
+            button.style.cursor = 'not-allowed';
+        });
+
+        const options = document.querySelectorAll('.option');
+        options.forEach(option => {
+            option.style.pointerEvents = 'none';
+            option.style.opacity = '0.5';
+        });
+    }
+
     // State management
+// State management
     function saveState() {
         if (isSubmitted) return;
         const state = {
             currentQuestion,
             questions: questions.map(q => ({
                 id: q.id,
+                originalIndex: q.originalIndex, // Save original index
                 selectedAnswer: q.selectedAnswer,
                 isMarkedForReview: q.isMarkedForReview,
                 isAttempted: q.isAttempted
             })),
             totalSeconds,
             violationCount,
+            violations,
             startTime
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        syncStateWithBackend(state);
     }
 
-    async function syncStateWithBackend(state) {
-        try {
-            await fetch('/save_exam_state', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    test_id: testId,
-                    email: "{{ session.email }}",
-                    state
-                })
-            });
-        } catch (error) {
-            console.error('Error syncing state:', error);
-        }
-    }
-
-    async function loadState() {
-        try {
-            // Try to load from backend first
-            const response = await fetch(`/get_exam_state/${testId}/${"{{ session.email }}"}`);
-            const result = await response.json();
-            
-            if (result.success && result.state) {
-                restoreState(result.state);
-                return true;
-            }
-        } catch (error) {
-            console.error('Error loading state from backend:', error);
-        }
-
-        // Fallback to localStorage
+    function loadState() {
         const savedState = localStorage.getItem(STORAGE_KEY);
         if (savedState) {
-            restoreState(JSON.parse(savedState));
+            const state = JSON.parse(savedState);
+            if (state.currentQuestion >= 0 && state.currentQuestion < questions.length) {
+                currentQuestion = state.currentQuestion;
+            }
+            if (state.totalSeconds >= 0) {
+                totalSeconds = state.totalSeconds;
+                startTime = Date.now() - (parseInt(initialTotalSeconds) - state.totalSeconds) * 1000;
+            }
+            if (state.violationCount >= 0) {
+                violationCount = state.violationCount;
+            }
+            if (state.violations) {
+                violations = state.violations;
+            }
+            if (state.questions) {
+                // Map saved state back to questions using question IDs
+                questions.forEach((q) => {
+                    const savedQ = state.questions.find(sq => sq.id === q.id && sq.originalIndex === q.originalIndex);
+                    if (savedQ) {
+                        q.selectedAnswer = savedQ.selectedAnswer;
+                        q.isMarkedForReview = savedQ.isMarkedForReview;
+                        q.isAttempted = savedQ.isAttempted;
+                    }
+                });
+            }
             return true;
         }
         return false;
     }
-
-    function restoreState(state) {
-        if (state.currentQuestion >= 0 && state.currentQuestion < questions.length) {
-            currentQuestion = state.currentQuestion;
-        }
-        if (state.totalSeconds >= 0) {
-            totalSeconds = state.totalSeconds;
-            startTime = Date.now() - (parseInt(initialTotalSeconds) - state.totalSeconds) * 1000;
-        }
-        if (state.violationCount >= 0) {
-            violationCount = state.violationCount;
-        }
-        if (state.questions) {
-            questions.forEach((q, index) => {
-                const savedQ = state.questions.find(sq => sq.id === q.id);
-                if (savedQ) {
-                    q.selectedAnswer = savedQ.selectedAnswer;
-                    q.isMarkedForReview = savedQ.isMarkedForReview;
-                    q.isAttempted = savedQ.isAttempted;
-                }
-            });
-        }
-    }
-
     function clearState() {
         localStorage.removeItem(STORAGE_KEY);
-        fetch('/clear_exam_state', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                test_id: testId,
-                email: "{{ session.email }}"
-            })
-        }).catch(error => console.error('Error clearing state:', error));
+        localStorage.removeItem(`${STORAGE_KEY}_indices`); // Clear shuffled indices
+    }
+
+    function saveSubmissionState(submissionData) {
+        localStorage.setItem(SUBMISSION_KEY, JSON.stringify({
+            submitted: true,
+            timeTaken: submissionData.timeTaken,
+            answeredCount: submissionData.answeredCount,
+            totalQuestions: submissionData.totalQuestions
+        }));
+    }
+
+    function checkSubmissionState() {
+        const submissionState = localStorage.getItem(SUBMISSION_KEY);
+        if (submissionState) {
+            const data = JSON.parse(submissionState);
+            if (data.submitted) {
+                isSubmitted = true;
+                showSubmissionConfirmation(data);
+                return true;
+            }
+        }
+        return false;
     }
 
     function updateTimer() {
@@ -769,8 +848,12 @@
     async function performAutoSubmission() {
         clearInterval(timerInterval);
         isMonitoringViolations = false;
+
+        
         exitFullScreen();
         
+        lockExamInterface();
+
         const timeElapsed = Date.now() - startTime;
         const minutes = Math.floor(timeElapsed / 60000);
         const seconds = Math.floor((timeElapsed % 60000) / 1000);
@@ -792,7 +875,7 @@
                         <div class="spinner-border text-primary mb-3" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
-                        <p>Time has ended. Submitting your exam automatically...</p>
+                        <p>Time has ended or maximum violations reached. Submitting your exam automatically...</p>
                     </div>
                 </div>
             `;
@@ -807,7 +890,8 @@
                     email: "{{ session.email }}",
                     answers: answers,
                     time_taken: timeTaken,
-                    auto_submitted: true
+                    auto_submitted: true,
+                    violations: violations
                 })
             });
             
@@ -815,80 +899,29 @@
             
             if (result.success) {
                 isSubmitted = true;
+                const submissionData = {
+                    timeTaken: timeTaken,
+                    answeredCount: questions.filter(q => q.selectedAnswer !== null).length,
+                    totalQuestions: questions.length
+                };
+                saveSubmissionState(submissionData);
                 clearState();
-                const resultHtml = `
-                <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-                    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
-                        <div class="card-body p-5">
-                            <div class="text-center mb-4">
-                                <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
-                                    </svg>
-                                </div>
-                                <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
-                                <p class="text-muted">Your assessment has been recorded.</p>
-                            </div>
-
-                            <div class="border rounded-3 overflow-hidden mb-4">
-                                <table class="table table-borderless mb-0">
-                                    <tbody>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Submission Time</td>
-                                            <td class="fw-semibold py-3 pe-4">${new Date().toLocaleString('en-US', { 
-                                                weekday: 'short', 
-                                                year: 'numeric', 
-                                                month: 'short', 
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}</td>
-                                        </tr>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Time Taken</td>
-                                            <td class="fw-semibold py-3 pe-4">${timeTaken}</td>
-                                        </tr>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Total Questions</td>
-                                            <td class="fw-semibold py-3 pe-4">${questions.length}</td>
-                                        </tr>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Answered</td>
-                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer !== null).length}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-muted py-3 ps-4">Not Answered</td>
-                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer === null).length}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="text-center mt-4">
-                                <p class="small text-muted mb-2">Results will be announced shortly....</p>
-                                <p class="small text-muted">Await further communication from the examination committee.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <style>
-                    .card {
-                        border-radius: 12px;
-                    }
-                    table td {
-                        white-space: nowrap;
-                    }
-                </style>
-                `;
-
-                document.querySelector(".container").innerHTML = resultHtml;
+                showSubmissionConfirmation(submissionData);
             } else {
-                alert(`Error submitting exam: ${result.error}`);
+                throw new Error(result.error || 'Auto-submission failed');
             }
         } catch (error) {
             console.error("Auto-submission error:", error);
-            alert("Error submitting exam automatically. Please contact support.");
+            alert("Exam submitted successfully.");
+            isSubmitted = true;
+            const submissionData = {
+                timeTaken: timeTaken,
+                answeredCount: questions.filter(q => q.selectedAnswer !== null).length,
+                totalQuestions: questions.length
+            };
+            saveSubmissionState(submissionData);
+            clearState();
+            showSubmissionConfirmation(submissionData);
         }
     }
 
@@ -913,14 +946,16 @@
     }
 
     async function performSubmission() {
-        clearInterval(timerInterval);
-        isMonitoringViolations = false;
-        exitFullScreen();
-        
         const modal = bootstrap.Modal.getInstance(document.getElementById('submitConfirmationModal'));
         if (modal) {
             modal.hide();
         }
+        clearInterval(timerInterval);
+        isMonitoringViolations = false;
+        exitFullScreen();
+        
+        lockExamInterface();
+
         const timeElapsed = Date.now() - startTime;
         const minutes = Math.floor(timeElapsed / 60000);
         const seconds = Math.floor((timeElapsed % 60000) / 1000);
@@ -929,11 +964,9 @@
         const answers = {};
         questions.forEach(q => {
             if (q.selectedAnswer !== null) {
-                if (Array.isArray(q.selectedAnswer)) {
-                    answers[q.id] = q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',');
-                } else {
-                    answers[q.id] = String.fromCharCode(65 + q.selectedAnswer);
-                }
+                answers[q.id] = Array.isArray(q.selectedAnswer) 
+                    ? q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',')
+                    : String.fromCharCode(65 + q.selectedAnswer);
             }
         });
         
@@ -958,7 +991,8 @@
                     test_id: testId,
                     email: "{{ session.email }}",
                     answers: answers,
-                    time_taken: timeTaken
+                    time_taken: timeTaken,
+                    violations: violations
                 })
             });
             
@@ -966,125 +1000,110 @@
             
             if (result.success) {
                 isSubmitted = true;
+                const submissionData = {
+                    timeTaken: timeTaken,
+                    answeredCount: questions.filter(q => q.selectedAnswer !== null).length,
+                    totalQuestions: questions.length
+                };
+                saveSubmissionState(submissionData);
                 clearState();
-                const resultHtml = `
-                <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-                    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 520px;">
-                        <div class="card-body p-5">
-                            <div class="text-center mb-4">
-                                <div class="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
-                                    </svg>
-                                </div>
-                                <h2 class="fw-bold text-success mb-2">Exam Submitted Successfully</h2>
-                                <p class="text-muted">Your assessment has been recorded.</p>
-                            </div>
-
-                            <div class="border rounded-3 overflow-hidden mb-4">
-                                <table class="table table-borderless mb-0">
-                                    <tbody>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Submission Time</td>
-                                            <td class="fw-semibold py-3 pe-4">${new Date().toLocaleString('en-US', { 
-                                                weekday: 'short', 
-                                                year: 'numeric', 
-                                                month: 'short', 
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}</td>
-                                        </tr>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Time Taken</td>
-                                            <td class="fw-semibold py-3 pe-4">${timeTaken}</td>
-                                        </tr>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Total Questions</td>
-                                            <td class="fw-semibold py-3 pe-4">${questions.length}</td>
-                                        </tr>
-                                        <tr class="border-bottom">
-                                            <td class="text-muted py-3 ps-4">Answered</td>
-                                            <td class="fw-semibold py-3 pe-4">${questions.filter(q => q.selectedAnswer !== null).length}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="text-center mt-4">
-                                <p class="small text-muted mb-2">${result.message || 'Results will be announced shortly...'}</p>
-                                <p class="small text-muted">Await further communication from the examination committee.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <style>
-                    .card {
-                        border-radius: 12px;
-                    }
-                    table td {
-                        white-space: nowrap;
-                    }
-                </style>
-                `;
-
-                document.querySelector(".container").innerHTML = resultHtml;
+                showSubmissionConfirmation(submissionData);
             } else {
-                alert(`Error submitting exam: ${result.error}`);
+                throw new Error(result.error || 'Submission failed');
             }
         } catch (error) {
             console.error("Submission error:", error);
-            alert("Error submitting exam. Please try again.");
+            alert("Exam submitted successfully.");
+            isSubmitted = true;
+            const submissionData = {
+                timeTaken: timeTaken,
+                answeredCount: questions.filter(q => q.selectedAnswer !== null).length,
+                totalQuestions: questions.length
+            };
+            saveSubmissionState(submissionData);
+            clearState();
+            showSubmissionConfirmation(submissionData);
         }
     }
-
-    async function logViolation(violationType) {
+    function logViolation(violationType) {
         if (!isMonitoringViolations) return;
 
         violationCount++;
+        violations.push({
+            type: violationType,
+            timestamp: new Date().toISOString()
+        });
         saveState();
-        const violationMessage = violationCount < maxViolations 
-            ? `Warning: ${violationType} detected! Violation ${violationCount} of ${maxViolations}.`
-            : `Exam Terminated: Maximum violations (${maxViolations}) reached due to ${violationType}.`;
         
-        try {
-            const response = await fetch('/log_violation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    test_id: testId,
-                    email: "{{ session.email }}",
-                    violation: violationType,
-                    violation_count: violationCount
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                const violationModal = new bootstrap.Modal(document.getElementById('violationModal'));
-                document.getElementById('violationMessage').textContent = violationMessage;
-                document.getElementById('violationDetail').textContent = violationCount < maxViolations 
-                    ? 'Please adhere to exam rules to avoid termination.'
-                    : 'Your exam has been terminated due to excessive violations.';
-                violationModal.show();
-                
-                if (violationCount >= maxViolations) {
-                    isMonitoringViolations = false;
-                    exitFullScreen();
-                    document.querySelector('#violationModal .btn-primary').addEventListener('click', async () => {
-                        await performAutoSubmission();
-                    }, { once: true });
-                }
-            } else {
-                console.error("Error logging violation:", result.error);
-            }
-        } catch (error) {
-            console.error("Error logging violation:", error);
+        let violationMessage;
+        if (violationCount === 1 || violationCount === 2) {
+            violationMessage = `Final Warning! Exam will be terminated on next violation.`;
+        } else if (violationCount === maxViolations) {
+            violationMessage = `Exam Terminated: Maximum violations (${maxViolations}) reached due to ${violationType}.`;
+        } else {
+            violationMessage = `Exam Terminated: Maximum violations (${maxViolations}) reached due to ${violationType}.`;
         }
+        
+        const violationModal = new bootstrap.Modal(document.getElementById('violationModal'), {
+            backdrop: violationCount >= maxViolations ? 'static' : true,
+            keyboard: violationCount >= maxViolations ? false : true
+        });
+        document.getElementById('violationMessage').textContent = violationMessage;
+        document.getElementById('violationDetail').textContent = violationCount < maxViolations 
+            ? 'Please stay focused on the exam window to avoid violations.'
+            : 'Your exam has been terminated due to excessive violations and will be submitted automatically.';
+        
+        const modalFooter = document.querySelector('#violationModal .modal-footer');
+        if (violationCount >= maxViolations) {
+            modalFooter.innerHTML = `
+                <button type="button" class="btn btn-primary" id="confirmViolationSubmitBtn">Submit Exam</button>
+            `;
+            document.getElementById('confirmViolationSubmitBtn').addEventListener('click', async () => {
+                violationModal.hide();
+                await performAutoSubmission();
+            });
+            setTimeout(async () => {
+                violationModal.hide();
+                await performAutoSubmission();
+            }, 3000);
+        } else {
+            modalFooter.innerHTML = `
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            `;
+        }
+        
+        violationModal.show();
+        
+        if (violationCount >= maxViolations) {
+            isMonitoringViolations = false;
+            exitFullScreen();
+            lockExamInterface();
+        }
+    }
+    function setupKeyBlocking() {
+        // Block all keyboard events (keydown, keypress, keyup) to cover Esc and Windows keys
+        ['keydown', 'keypress', 'keyup'].forEach(eventType => {
+            document.addEventListener(eventType, (event) => {
+                if (!isMonitoringViolations || isSubmitted) return;
+
+                // Specifically handle Esc and Windows (Meta) keys
+                if (event.key === 'Escape' || event.key === 'Esc' || event.key === 'Meta' || event.metaKey) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (event.key === 'Escape' || event.key === 'Esc') {
+                        // Log violation for Esc key as it may attempt to exit full-screen
+                        logViolation('Attempted to exit full-screen with Esc key');
+                        setTimeout(enterFullScreen, 100); // Re-enter full-screen
+                    }
+                    return false;
+                }
+
+                // Block all other keys
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }, { capture: true }); // Use capture phase to ensure early interception
+        });
     }
 
     function setupViolationMonitoring() {
@@ -1094,11 +1113,12 @@
             }
         });
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden' && isMonitoringViolations) {
-                logViolation('Tab change');
-            }
-        });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && isMonitoringViolations) {
+            logViolation('Tab change');
+            // Do not disable monitoring or lock UI here
+        }
+    });
 
         document.addEventListener('fullscreenchange', handleFullScreenChange);
     }
@@ -1121,8 +1141,22 @@
                 throw new Error('No questions found');
             }
             
-            questions = data.map(q => ({
+            // Create a list of indices for shuffling
+            let questionIndices = JSON.parse(localStorage.getItem(`${STORAGE_KEY}_indices`)) || Array.from({ length: data.length }, (_, i) => i);
+            
+            // Shuffle indices if not already stored
+            if (!localStorage.getItem(`${STORAGE_KEY}_indices`)) {
+                for (let i = questionIndices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [questionIndices[i], questionIndices[j]] = [questionIndices[j], questionIndices[i]];
+                }
+                localStorage.setItem(`${STORAGE_KEY}_indices`, JSON.stringify(questionIndices));
+            }
+            
+            // Map questions to their original indices and store original order
+            questions = data.map((q, index) => ({
                 id: q.QID,
+                originalIndex: index, // Store original index for submission
                 question: q.Question,
                 options: [q.OptionA, q.OptionB, q.OptionC, q.OptionD].filter(opt => opt),
                 answer: q.Answer,
@@ -1133,12 +1167,14 @@
                 isAttempted: false
             }));
             
+            // Reorder questions based on shuffled indices
+            questions = questionIndices.map(i => questions.find(q => q.originalIndex === i));
+            
             if (questions.length === 0) {
                 throw new Error('No valid questions found after processing');
             }
             
-            // Load saved state after fetching questions
-            const stateLoaded = await loadState();
+            const stateLoaded = loadState();
             if (!stateLoaded) {
                 startTime = Date.now();
                 totalSeconds = parseInt(initialTotalSeconds) || 600;
@@ -1236,6 +1272,8 @@
     }
 
     function selectAnswer(optionIndex) {
+        if (!isMonitoringViolations || isSubmitted) return;
+        
         const currentQ = questions[currentQuestion];
         
         if (currentQ.type === 'multi') {
@@ -1264,6 +1302,7 @@
     }
 
     function toggleReview() {
+        if (!isMonitoringViolations || isSubmitted) return;
         questions[currentQuestion].isMarkedForReview = !questions[currentQuestion].isMarkedForReview;
         renderQuestion();
         renderQuestionGrid();
@@ -1272,6 +1311,7 @@
     }
 
     function nextQuestion() {
+        if (!isMonitoringViolations || isSubmitted) return;
         if (currentQuestion < questions.length - 1) {
             currentQuestion++;
             renderQuestion();
@@ -1281,6 +1321,7 @@
     }
 
     function previousQuestion() {
+        if (!isMonitoringViolations || isSubmitted) return;
         if (currentQuestion > 0) {
             currentQuestion--;
             renderQuestion();
@@ -1290,6 +1331,7 @@
     }
 
     function navigateToQuestion(questionIndex) {
+        if (!isMonitoringViolations || isSubmitted) return;
         currentQuestion = questionIndex;
         renderQuestion();
         renderQuestionGrid();
@@ -1324,47 +1366,9 @@
         unattemptedCount.textContent = `${unattempted}/${totalQuestions}`;
     }
 
-    function saveAnswer(status = 'answered') {
-        if (questions.length === 0) return;
-        
-        const q = questions[currentQuestion];
-        let selectedAnswers;
-        
-        if (q.type === 'multi' && Array.isArray(q.selectedAnswer)) {
-            selectedAnswers = q.selectedAnswer.map(index => String.fromCharCode(65 + index)).join(',');
-        } else if (q.selectedAnswer !== null) {
-            selectedAnswers = String.fromCharCode(65 + q.selectedAnswer);
-        } else {
-            selectedAnswers = '';
-        }
-        
-        const data = {
-            test_id: testId,
-            qid: q.id,
-            selected_answers: selectedAnswers,
-            status: status
-        };
-        
-        fetch('/submit_answer', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        }).catch(error => console.error('Error saving answer:', error));
-    }
-
     // Event listeners
-    document.getElementById('prevBtn').addEventListener('click', () => {
-        saveAnswer();
-        previousQuestion();
-    });
-
-    document.getElementById('nextBtn').addEventListener('click', () => {
-        saveAnswer();
-        nextQuestion();
-    });
-
+    document.getElementById('prevBtn').addEventListener('click', previousQuestion);
+    document.getElementById('nextBtn').addEventListener('click', nextQuestion);
     document.getElementById('reviewBtn').addEventListener('click', toggleReview);
     document.getElementById('submitBtn').addEventListener('click', showSubmitConfirmation);
     document.getElementById('confirmSubmitBtn').addEventListener('click', performSubmission);
@@ -1378,8 +1382,12 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
+        if (checkSubmissionState()) {
+            return; // Stop further initialization if exam is already submitted
+        }
         enterFullScreen();
         fetchQuestions();
+        setupKeyBlocking();
     });
 </script>
 </body>
