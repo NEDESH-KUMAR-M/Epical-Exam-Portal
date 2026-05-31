@@ -74,19 +74,13 @@ It handles:
 
 <br/>
 
----
-
 ## 🌐 Live Demo
 
-> Add your deployed URL here once hosted
-> Example: `https://your-app.run.app`
+🚀 Explore the Secure Online Examination Platform:
 
-**Test Credentials (demo):**
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@demo.com | admin123 |
-| Candidate | candidate@demo.com | test123 |
+<a href="https://epical-exam1-856878813474.asia-south1.run.app">
+  <img src="https://img.shields.io/badge/Launch%20Application-4CAF50?style=for-the-badge&logo=google-chrome&logoColor=white">
+</a>
 
 <br/>
 
